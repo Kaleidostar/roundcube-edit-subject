@@ -184,6 +184,9 @@ Docker-, Composer-, Python- und GitHub-Actions-Manifeste; für das
 Roundcube-Image nur Patch-Updates, weil die beiden Stufen bewusst die Reihen
 1.6 und 1.7 testen. Auch ein Patch-Update bleibt rot, bis `RC_TAG` in
 `Makefile`, `run-tests.sh` und `.github/workflows/tests.yml` nachgezogen ist.
+Für die PHP-Images der Unit-Tests schlägt Dependabot keinen Wechsel der Reihe
+vor, weil die Stufen bewusst PHP 8.4 und 8.1 testen; kein Test prüft dort die
+laufende PHP-Version, `tests/unit/run.sh` gibt sie nur aus.
 `test_00_environment.py` prüft die laufende Roundcube-Version, PHP nur auf die
 Hauptversion 8. Gemessen am 23.11.2026:
 

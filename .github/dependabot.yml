@@ -26,6 +26,15 @@ updates:
     directory: /tests/docker/phpunit
     schedule:
       interval: monthly
+    # Die Stufen php84 und php81 testen bewusst PHP 8.4 (wie die
+    # Roundcube-Images) und 8.1 (die kleinste unterstützte Version). Kein
+    # Test prüft, welche PHP-Version dort läuft; den Wechsel einer Reihe
+    # macht deshalb ein Mensch, zusammen mit tests/docker/compose.yml.
+    ignore:
+      - dependency-name: php
+        update-types:
+          - version-update:semver-major
+          - version-update:semver-minor
   - package-ecosystem: docker
     directory: /tests/docker/runner
     schedule:

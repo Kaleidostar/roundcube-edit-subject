@@ -11,6 +11,9 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 - Dependabot schlägt für das Roundcube-Test-Image nur noch Patch-Updates vor.
   Vorher wollte es die Stufe für 1.6.21 auf 1.7.5 heben, womit der Lauf für
   die Reihe 1.6 still eine 1.7 getestet hätte.
+- Für die PHP-Images der Unit-Tests schlägt Dependabot keinen Wechsel der
+  Reihe mehr vor. Vorher wollte es die Stufen für PHP 8.4 und 8.1 beide auf
+  8.6 heben.
 
 ## [1.0.3] – 2026-11-24
 
