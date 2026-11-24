@@ -1,0 +1,8 @@
+Message-ID: <nosubject-1@example.test>
+Date: Mon, 02 Sep 2019 07:45:00 +0000
+From: Erin Example <erin@example.test>
+To: Bob Example <bob@example.test>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+
+This message has no Subject header at all.

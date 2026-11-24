@@ -1,0 +1,64 @@
+name: Fehlerbericht
+description: Etwas funktioniert nicht wie beschrieben.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Sicherheitslücken bitte **nicht** hier melden, sondern vertraulich wie in [SECURITY.md](../blob/main/SECURITY.md) beschrieben.
+        Bitte keine echten Mailadressen, Passwörter oder Mailinhalte einfügen.
+  - type: input
+    id: plugin
+    attributes:
+      label: Version des Plugins
+      placeholder: "1.0.3"
+    validations:
+      required: true
+  - type: input
+    id: roundcube
+    attributes:
+      label: Roundcube-Version und Skin
+      placeholder: "1.7.6, Elastic"
+    validations:
+      required: true
+  - type: input
+    id: php
+    attributes:
+      label: PHP-Version
+      placeholder: "8.3"
+  - type: input
+    id: imap
+    attributes:
+      label: IMAP-Server mit Version
+      placeholder: "Dovecot 2.4.5"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Schritte zum Nachstellen
+      placeholder: |
+        1. Mail im Posteingang wählen
+        2. Mehr → Betreff bearbeiten
+        3. …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Erwartet
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Tatsächlich
+      description: Meldung in Roundcube und Zustand im Ordner, zum Beispiel ob beide Fassungen der Mail da sind.
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Auszug aus logs/errors.log
+      description: Zeilen mit „edit_subject:“. Adressen und Ordnernamen dürfen unkenntlich gemacht werden.
+      render: text

@@ -1,0 +1,46 @@
+# Alle Tests in Docker: Syntax und Unit-Tests unter PHP 8.4 und 8.1,
+# Integrations- und Browsertests gegen Roundcube und Dovecot. Dieselben drei
+# Läufe wie "make test-all", hier parallel. Der Workflow "Release" ruft ihn
+# vor jedem Release auf.
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    name: Roundcube ${{ matrix.roundcube }}${{ matrix.messages_cache == '1' && ', messages_cache' || '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - roundcube: 1.7.6-apache
+            messages_cache: '0'
+          - roundcube: 1.6.21-apache
+            messages_cache: '0'
+          - roundcube: 1.7.6-apache
+            messages_cache: '1'
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Tests in Docker
+        env:
+          RC_TAG: ${{ matrix.roundcube }}
+          MESSAGES_CACHE: ${{ matrix.messages_cache }}
+        run: ./run-tests.sh

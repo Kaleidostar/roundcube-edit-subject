@@ -1,0 +1,4 @@
+/* Menu entry icon in the "More" menu (Elastic uses Font Awesome 5) */
+.popupmenu a.edit-subject:before {
+    content: "\f303"; /* pencil */
+}

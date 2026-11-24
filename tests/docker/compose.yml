@@ -1,0 +1,129 @@
+# Test environment for the edit_subject plugin. Started by ../../run-tests.sh.
+# Only local containers, no real mailboxes or credentials.
+
+x-dovecot: &dovecot
+  build:
+    context: ./dovecot
+  image: edit-subject-test-dovecot:2.4.5
+  environment:
+    USER_PASSWORD: password
+  healthcheck:
+    # ask the service, not the port: log in and list the mailboxes
+    test: ["CMD-SHELL", "curl -fsS --max-time 3 --user healthcheck@example.test:password imap://127.0.0.1:31143/ >/dev/null"]
+    interval: 2s
+    timeout: 5s
+    retries: 30
+
+services:
+  dovecot:
+    <<: *dovecot
+    volumes:
+      - ./dovecot/common.conf:/etc/dovecot/conf.d/90-edit-subject-common.conf:ro
+      - ./dovecot/main.conf:/etc/dovecot/conf.d/91-edit-subject-main.conf:ro
+
+  dovecot-nouidplus:
+    <<: *dovecot
+    volumes:
+      - ./dovecot/common.conf:/etc/dovecot/conf.d/90-edit-subject-common.conf:ro
+      - ./dovecot/nouidplus.conf:/etc/dovecot/conf.d/91-edit-subject-nouidplus.conf:ro
+
+  dovecot-quota:
+    <<: *dovecot
+    volumes:
+      - ./dovecot/common.conf:/etc/dovecot/conf.d/90-edit-subject-common.conf:ro
+      - ./dovecot/quota.conf:/etc/dovecot/conf.d/91-edit-subject-quota.conf:ro
+
+  roundcube:
+    build:
+      context: ./roundcube
+      args:
+        RC_STAGE: ${RC_STAGE:-rc176}
+    image: edit-subject-test-roundcube:${RC_TAG:-1.7.6-apache}
+    environment:
+      ROUNDCUBEMAIL_DEFAULT_HOST: dovecot
+      ROUNDCUBEMAIL_DEFAULT_PORT: "31143"
+      ROUNDCUBEMAIL_DB_TYPE: sqlite
+      ROUNDCUBEMAIL_SKIN: elastic
+      ROUNDCUBEMAIL_PLUGINS: edit_subject,edit_subject_testkit
+      ROUNDCUBEMAIL_TEMP_DIR: /var/roundcube/temp
+      EDIT_SUBJECT_MESSAGES_CACHE: ${MESSAGES_CACHE:-0}
+      # the testkit plugin does nothing without this
+      EDIT_SUBJECT_TESTKIT: "1"
+    volumes:
+      # the repository is the plugin directory
+      - ../..:/var/www/html/plugins/edit_subject:ro
+      - ./roundcube/testkit:/var/www/html/plugins/edit_subject_testkit:ro
+      - ./roundcube/config:/var/roundcube/config:ro
+      - rc-logs:/var/roundcube/logs
+      - rc-temp:/var/roundcube/temp
+      - rc-ctl:/var/roundcube/testctl
+    networks:
+      default:
+        aliases: [rc, rc-sim, rc-noacl, rc-nouidplus, rc-quota, rc-keep, rc-small, rc-badsize, rc-forcecaps]
+    depends_on:
+      dovecot:
+        condition: service_healthy
+      dovecot-nouidplus:
+        condition: service_healthy
+      dovecot-quota:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS --max-time 5 -H 'Host: rc' http://127.0.0.1/ | grep -q rcmloginuser"]
+      interval: 2s
+      timeout: 6s
+      retries: 60
+
+  phpunit:
+    build:
+      context: ./phpunit
+      args:
+        PHP_STAGE: php84
+    image: edit-subject-test-phpunit:8.4
+    volumes:
+      - ../..:/src:ro
+    working_dir: /src
+    command: ["/src/tests/unit/run.sh"]
+    profiles: [unit]
+
+  phpunit81:
+    build:
+      context: ./phpunit
+      args:
+        PHP_STAGE: php81
+    image: edit-subject-test-phpunit:8.1
+    volumes:
+      - ../..:/src:ro
+    working_dir: /src
+    command: ["/src/tests/unit/run.sh"]
+    profiles: [unit]
+
+  runner:
+    build:
+      context: ./runner
+    image: edit-subject-test-runner:1
+    environment:
+      RC_TAG: ${RC_TAG:-1.7.6-apache}
+      MESSAGES_CACHE: ${MESSAGES_CACHE:-0}
+      PYTEST_ADDOPTS: ${PYTEST_ADDOPTS:-}
+    volumes:
+      - ../..:/src:ro
+      - rc-logs:/rc/logs:ro
+      - rc-temp:/rc/temp:ro
+      - rc-ctl:/rc/ctl
+    working_dir: /src/tests
+    command: ["python3", "-m", "pytest"]
+    depends_on:
+      roundcube:
+        condition: service_healthy
+    profiles: [runner]
+
+volumes:
+  rc-logs:
+  rc-temp:
+  rc-ctl:
+
+networks:
+  # The tests need no way out: the containers only talk to each other. They
+  # see the whole repository (read-only), and nothing of it has to leave.
+  default:
+    internal: true

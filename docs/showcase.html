@@ -1,0 +1,1589 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>edit_subject für Roundcube</title>
+<meta name="description" content="Showcase zu edit_subject 1.0.3, einem Roundcube-Plugin, das den Betreff einer vorhandenen Mail ändert: Demo, Ablauf auf dem IMAP-Server, Testergebnisse, Installation.">
+<style>
+:root {
+  /* Aufbau: Kopf mit der These, darunter die Demo als Werkbank in zwei Spalten
+     (links Mailprogramm und Mailkopf, rechts der IMAP-Server), danach kurze
+     Abschnitte in einer Spalte. Akzent ist das Blau von Elastic, abgedunkelt;
+     das einzige laute Element ist der Textmarker auf der geänderten Kopfzeile. */
+  --paper: #f1f4f6;
+  --surface: #ffffff;
+  --ink: #142028;
+  --muted: #55636c;
+  --line: #d4dce1;
+  --line-soft: #e7ecef;
+  --accent: #0a76a6;
+  --on-accent: #ffffff;
+  --select: #e2f3fb;
+  --marker: #ffe15a;
+  --marker-ink: #1f1b05;
+  --copy-row: #fff7cf;
+  --ok: #2b8a3e;
+  --ok-soft: #e7f5ea;
+  --err: #c62828;
+  --err-soft: #fdeceb;
+  --flag: #e03131;
+  --code: #ecf0f3;
+  --scrim: rgba(12, 20, 26, 0.45);
+  --shadow: 0 1px 2px rgba(20, 32, 40, 0.06), 0 10px 28px rgba(20, 32, 40, 0.08);
+  --font-text: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0d1317;
+    --surface: #141c21;
+    --ink: #e1e8ec;
+    --muted: #98a6ae;
+    --line: #2a363d;
+    --line-soft: #1e282e;
+    --accent: #5ec4f2;
+    --on-accent: #062230;
+    --select: #12364a;
+    --marker: #66570a;
+    --marker-ink: #fff2a8;
+    --copy-row: #2d2806;
+    --ok: #69d07c;
+    --ok-soft: #13291a;
+    --err: #ff8a8a;
+    --err-soft: #35181a;
+    --flag: #ff6b6b;
+    --code: #0f171c;
+    --scrim: rgba(0, 0, 0, 0.6);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 10px 28px rgba(0, 0, 0, 0.35);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0d1317;
+  --surface: #141c21;
+  --ink: #e1e8ec;
+  --muted: #98a6ae;
+  --line: #2a363d;
+  --line-soft: #1e282e;
+  --accent: #5ec4f2;
+  --on-accent: #062230;
+  --select: #12364a;
+  --marker: #66570a;
+  --marker-ink: #fff2a8;
+  --copy-row: #2d2806;
+  --ok: #69d07c;
+  --ok-soft: #13291a;
+  --err: #ff8a8a;
+  --err-soft: #35181a;
+  --flag: #ff6b6b;
+  --code: #0f171c;
+  --scrim: rgba(0, 0, 0, 0.6);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 10px 28px rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
+}
+
+[hidden] { display: none !important; }
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 16px/1.55 var(--font-text);
+}
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+p { margin: 0; }
+p, li { hyphens: auto; }
+code, .mono { font-family: var(--font-mono); font-size: 0.88em; }
+:not(pre) > code { background: var(--code); padding: 0.08em 0.35em; border-radius: 4px; overflow-wrap: anywhere; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ic { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.ic.fill { fill: currentColor; stroke: none; }
+
+/* Kopf */
+.hero { padding-block: 56px 20px; display: grid; gap: 14px; }
+.eyebrow { font: 600 0.8rem/1.3 var(--font-mono); color: var(--muted); letter-spacing: 0.02em; }
+h1 {
+  margin: 0;
+  max-width: 20ch;
+  font-size: clamp(2.05rem, 1.25rem + 3.4vw, 3.35rem);
+  line-height: 1.06;
+  letter-spacing: -0.025em;
+  font-weight: 780;
+  text-wrap: balance;
+}
+.mark {
+  color: var(--marker-ink);
+  background: linear-gradient(transparent 14%, var(--marker) 14%, var(--marker) 90%, transparent 90%);
+  padding: 0 0.06em;
+  border-radius: 3px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.lead { font-size: 1.15rem; max-width: 62ch; }
+.lead2 { color: var(--muted); max-width: 66ch; }
+.facts { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.facts li { font-size: 0.86rem; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--muted); }
+
+/* Abschnitte */
+.sec { padding-block: 28px; display: grid; gap: 16px; }
+.sec-head { display: grid; gap: 6px; max-width: 72ch; }
+h2 { margin: 0; font-size: 1.55rem; line-height: 1.2; letter-spacing: -0.012em; font-weight: 740; text-wrap: balance; }
+h3 { margin: 0; font-size: 1.02rem; line-height: 1.3; font-weight: 700; }
+.fine { font-size: 0.83rem; color: var(--muted); max-width: 95ch; }
+
+/* Demo */
+.demo { display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+.demo-left { display: grid; gap: 18px; min-width: 0; }
+@media (min-width: 1000px) {
+  .demo { grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); }
+}
+
+/* Nachbildung der Roundcube-Oberfläche */
+.rc {
+  position: relative;
+  container-type: inline-size;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  font-size: 14px;
+  line-height: 1.4;
+}
+.rc-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 8px 10px 8px 14px; border-bottom: 1px solid var(--line); }
+.rc-title { display: grid; line-height: 1.25; }
+.rc-title b { font-size: 15px; }
+.rc-title span { font-size: 12px; color: var(--muted); }
+.rc-toolbar { display: flex; gap: 2px; margin-left: auto; max-width: 100%; overflow-x: auto; }
+.tb {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 56px;
+  padding: 6px 6px 5px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font-size: 11.5px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.tb .ic { width: 20px; height: 20px; }
+.tb span { white-space: nowrap; }
+.tb[data-inert] { opacity: 0.5; cursor: default; }
+@container (max-width: 560px) {
+  .tb[data-inert] { min-width: 38px; }
+  .tb[data-inert] span { display: none; }
+}
+.tb-more { color: var(--ink); font-weight: 600; }
+.tb-more:hover:not(:disabled), .tb-more[aria-expanded="true"] { background: var(--select); color: var(--accent); }
+.tb:disabled { opacity: 0.45; cursor: default; }
+.rc-main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); height: 372px; }
+@container (max-width: 560px) {
+  .rc-main { grid-template-columns: minmax(0, 1fr); height: auto; min-height: 330px; }
+  .rc-preview { display: none !important; }
+}
+.rc-list { overflow-y: auto; border-right: 1px solid var(--line); }
+.rc-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1px 8px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--line-soft);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.rc-row:hover:not(:disabled) { background: var(--line-soft); }
+.rc-row[aria-pressed="true"], .rc-row[aria-pressed="true"]:hover { background: var(--select); }
+.rc-row:disabled { cursor: default; }
+.r-from { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.r-date { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.r-subj { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.unread .r-subj { color: var(--ink); font-weight: 700; }
+.r-ico { display: flex; gap: 4px; align-items: center; color: var(--muted); }
+.r-ico .ic { width: 15px; height: 15px; }
+.r-ico .flag { color: var(--flag); }
+.rc-row.fresh .r-subj { animation: fresh 1.8s ease-out; border-radius: 3px; }
+@keyframes fresh { from { background: var(--marker); color: var(--marker-ink); } to { background: transparent; } }
+.rc-preview { display: grid; align-content: start; gap: 10px; padding: 14px 16px; overflow-y: auto; }
+.rc-preview h4 { margin: 0; font-size: 16px; line-height: 1.3; overflow-wrap: anywhere; }
+.rc-meta { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; margin: 0; font-size: 12.5px; color: var(--muted); }
+.rc-meta dt { font-weight: 600; }
+.rc-meta dd { margin: 0; overflow-wrap: anywhere; }
+.rc-text { white-space: pre-line; }
+.rc-att { display: flex; flex-wrap: wrap; gap: 6px; }
+.rc-att span { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 12px; }
+.rc-att .ic { width: 14px; height: 14px; }
+.rc-empty { color: var(--muted); }
+
+.rc-menu {
+  position: absolute;
+  z-index: 5;
+  width: min(264px, calc(100% - 16px));
+  padding: 6px 0;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+.rc-menu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 14px; border: 0; background: none; text-align: left; cursor: pointer; }
+.rc-menu button[aria-disabled="true"] { opacity: 0.45; cursor: default; }
+.rc-menu .es { font-weight: 600; }
+.rc-menu .es:not([aria-disabled="true"]):hover,
+.rc-menu .es:not([aria-disabled="true"]):focus-visible { background: var(--select); color: var(--accent); outline: none; }
+
+.rc-scrim { position: absolute; inset: 0; z-index: 10; display: grid; place-items: center; padding: 16px; background: var(--scrim); }
+.rc-dialog { width: min(460px, 100%); overflow: hidden; background: var(--surface); border-radius: 10px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.3); }
+.dlg-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 10px 10px 16px; border-bottom: 1px solid var(--line); font-weight: 650; }
+.dlg-x { width: 30px; height: 30px; border: 0; border-radius: 6px; background: none; color: var(--muted); font-size: 20px; line-height: 1; cursor: pointer; }
+.dlg-body { display: grid; gap: 6px; padding: 16px; }
+.dlg-body label { font-weight: 600; }
+.dlg-body input { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; font-size: 15px; }
+.dlg-body input:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+.hint { font-size: 12.5px; color: var(--muted); }
+.dlg-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); }
+.btn { padding: 7px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); font-size: 14px; font-weight: 600; cursor: pointer; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn:disabled { opacity: 0.5; cursor: default; }
+
+.rc-toasts { position: absolute; z-index: 20; right: 10px; bottom: 10px; display: grid; gap: 8px; width: min(340px, calc(100% - 20px)); pointer-events: none; }
+.toast { display: flex; gap: 8px; align-items: flex-start; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow); font-size: 13px; pointer-events: auto; cursor: pointer; }
+.toast .ic { width: 16px; height: 16px; flex: none; margin-top: 1px; stroke-width: 2.4; }
+.toast.ok { border-color: var(--ok); background: var(--ok-soft); }
+.toast.ok .ic { color: var(--ok); }
+.toast.err { border-color: var(--err); background: var(--err-soft); }
+.toast.err .ic { color: var(--err); }
+.spin { width: 14px; height: 14px; flex: none; margin-top: 2px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Kopf der Mail */
+.kopf { min-width: 0; overflow: hidden; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.kopf-intro { display: grid; gap: 4px; padding: 14px 14px 4px; }
+.kopf-intro p { font-size: 14px; color: var(--muted); max-width: 78ch; }
+.kopf-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; padding: 10px 14px; }
+.chip { padding: 2px 8px; border-radius: 999px; background: var(--code); color: var(--muted); font-size: 12px; font-weight: 700; }
+.chip.k-vorschau { background: var(--select); color: var(--accent); }
+.chip.k-gespeichert { background: var(--ok-soft); color: var(--ok); }
+.chip.k-fehler { background: var(--err-soft); color: var(--err); }
+.kopf-sub { min-width: 0; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.kopf-uids { margin-left: auto; font: 12.5px var(--font-mono); color: var(--muted); }
+.code-scroll { overflow-x: auto; background: var(--code); border-block: 1px solid var(--line-soft); }
+.hdr { min-width: max-content; margin: 0; padding: 10px 0; font: 12.5px/1.6 var(--font-mono); tab-size: 4; }
+.hl { position: relative; display: block; padding: 0 16px 0 32px; white-space: pre; }
+.hl::before { content: attr(data-s); position: absolute; left: 13px; color: var(--muted); }
+.hl.del { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--err); }
+.hl.add { background: var(--marker); color: var(--marker-ink); }
+.hl.add::before { color: var(--marker-ink); }
+.hl.end { color: var(--muted); font-style: italic; }
+.hl.opt { color: var(--muted); }
+.kopf-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 16px; margin: 0; padding: 12px 14px; }
+.kopf-facts div { min-width: 0; }
+.kopf-facts dt { font-size: 11.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+.kopf-facts dd { margin: 2px 0 0; font: 13px/1.4 var(--font-mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.kopf-opt { display: grid; gap: 8px; padding: 12px 0 0; border-top: 1px solid var(--line-soft); }
+.kopf-opt p { padding: 0 14px; font-size: 13px; color: var(--muted); }
+.kopf-opt .code-scroll { border-bottom: 0; }
+
+/* Server */
+.srv { display: grid; gap: 14px; min-width: 0; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+.srv-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.srv-box { font: 12.5px var(--font-mono); color: var(--muted); }
+.scen { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.scen legend { margin-bottom: 6px; padding: 0; font-size: 12.5px; color: var(--muted); }
+.scen label { position: relative; }
+.scen input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.scen span { display: inline-block; padding: 4px 11px; border: 1px solid var(--line); border-radius: 999px; font-size: 13px; cursor: pointer; user-select: none; }
+.scen input:checked + span { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+.scen input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.scen input:disabled + span { opacity: 0.5; cursor: default; }
+.mbox-wrap { overflow-x: auto; }
+.mbox { width: 100%; border-collapse: collapse; font: 12.5px/1.4 var(--font-mono); }
+.mbox th { padding: 4px 6px; border-bottom: 1px solid var(--line); color: var(--muted); font-weight: 600; text-align: left; }
+.mbox td { padding: 5px 6px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+.mbox td:first-child { width: 3.2em; font-variant-numeric: tabular-nums; }
+.mbox td:nth-child(2) { font: 13px/1.4 var(--font-text); overflow-wrap: anywhere; }
+.mbox td:last-child { color: var(--muted); }
+.mbox tr.sel td { background: var(--select); }
+.mbox tr.copy td { background: var(--copy-row); }
+.mbox tr.gone td { color: var(--muted); text-decoration: line-through; }
+.none { color: var(--muted); }
+.badge { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: var(--marker); color: var(--marker-ink); font: 600 11px/1.6 var(--font-text); vertical-align: 1px; }
+.badge.ok { background: var(--ok-soft); color: var(--ok); }
+.copies { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 13.5px; }
+.dots { display: inline-flex; gap: 4px; }
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.dots i.copy { background: var(--marker); box-shadow: inset 0 0 0 1px var(--marker-ink); }
+.steps { display: grid; margin: 0; padding: 0; list-style: none; }
+.step { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; padding: 7px 0; border-top: 1px solid var(--line-soft); }
+.step:first-child { border-top: 0; }
+.ico { display: grid; place-items: center; width: 20px; height: 20px; margin-top: 1px; border: 2px solid var(--line); border-radius: 50%; color: var(--surface); }
+.ico .ic { display: none; width: 12px; height: 12px; stroke-width: 3; }
+.step.active .ico { border-color: var(--accent); box-shadow: 0 0 0 4px var(--select); }
+.step.done .ico { background: var(--ok); border-color: var(--ok); }
+.step.fail .ico { background: var(--err); border-color: var(--err); }
+.step.info .ico { background: var(--muted); border-color: var(--muted); }
+.step.done .i-ok, .step.fail .i-no, .step.info .i-dash, .step.skip .i-dash { display: block; }
+.step.skip { opacity: 0.45; }
+.step.skip .ico { color: var(--muted); }
+.st { font-size: 14.5px; font-weight: 650; }
+.sd { font-size: 13px; color: var(--muted); }
+.sn { margin-top: 2px; font-size: 13px; }
+.sn:empty { display: none; }
+.step.fail .sn { color: var(--err); font-weight: 600; }
+.log { margin: 6px 0 0; padding: 7px 9px; background: var(--code); border-radius: 6px; font: 11.5px/1.5 var(--font-mono); }
+.log span { display: block; padding-left: 2.2em; text-indent: -2.2em; white-space: pre-wrap; overflow-wrap: anywhere; }
+.log .c::before { content: "C: "; color: var(--accent); }
+.log .s, .log .no { color: var(--muted); }
+.log .s::before, .log .no::before { content: "S: "; }
+.log .no { color: var(--err); font-weight: 600; }
+.sf { margin-top: 4px; font-size: 12px; font-style: italic; color: var(--muted); }
+.rule { padding-top: 12px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+.btn-quiet { justify-self: start; background: none; }
+
+/* Testergebnisse */
+.tbl { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.results { width: 100%; min-width: 640px; border-collapse: collapse; font-size: 14.5px; font-variant-numeric: tabular-nums; }
+.results caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.results th, .results td { padding: 10px 14px; border-bottom: 1px solid var(--line-soft); text-align: left; vertical-align: top; }
+.results thead th { border-bottom-color: var(--line); color: var(--muted); font-size: 12.5px; font-weight: 600; }
+.results tbody th { font-weight: 650; }
+.results tbody tr:last-child > * { border-bottom: 0; }
+.results tr.zip-first > * { border-top: 2px solid var(--line); }
+.pass { display: inline-flex; align-items: center; gap: 7px; }
+.pass::before { content: ""; width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--ok); }
+.na { color: var(--muted); }
+.notes { display: grid; gap: 6px; max-width: 95ch; font-size: 13.5px; color: var(--muted); }
+.proofs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px 24px; margin: 4px 0 0; padding: 0; list-style: none; }
+.proofs li, .hints li { padding-top: 10px; border-top: 2px solid var(--line); font-size: 14.5px; }
+.proofs b, .hints b { display: block; margin-bottom: 2px; }
+
+/* Installation */
+.install { display: grid; gap: 16px; max-width: 82ch; margin: 0; padding: 0; list-style: none; counter-reset: n; }
+.install > li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; counter-increment: n; }
+.install > li::before { content: counter(n); display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color: var(--surface); font-size: 13px; font-weight: 700; }
+.install > li > div { display: grid; gap: 8px; min-width: 0; }
+.codeblock { position: relative; min-width: 0; background: var(--code); border: 1px solid var(--line-soft); border-radius: 8px; }
+.codeblock pre { margin: 0; padding: 10px 92px 10px 12px; overflow-x: auto; font: 13px/1.55 var(--font-mono); }
+.copy { position: absolute; top: 6px; right: 6px; padding: 3px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); font-size: 12px; cursor: pointer; }
+
+/* Hinweise und Fuß */
+.hints { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px 24px; margin: 0; padding: 0; list-style: none; }
+.foot { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 12px; padding-block: 24px 40px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-reply" viewBox="0 0 24 24"><path d="M9 16 4 11l5-5"/><path d="M4 11h9a7 7 0 0 1 7 7v1"/></symbol>
+  <symbol id="i-replyall" viewBox="0 0 24 24"><path d="M8 16 3 11l5-5"/><path d="M13 16l-5-5 5-5"/><path d="M8 11h6a7 7 0 0 1 7 7v1"/></symbol>
+  <symbol id="i-forward" viewBox="0 0 24 24"><path d="M15 16l5-5-5-5"/><path d="M20 11h-9a7 7 0 0 0-7 7v1"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="i-flagfill" viewBox="0 0 24 24"><path d="M5 3.5h12l-2.5 4.5 2.5 4.5H6.6V21H5z"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></symbol>
+  <symbol id="i-print" viewBox="0 0 24 24"><path d="M7 9V3h10v6"/><rect x="7" y="14" width="10" height="7"/><path d="M7 18H4v-7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7h-3"/></symbol>
+  <symbol id="i-import" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/></symbol>
+  <symbol id="i-export" viewBox="0 0 24 24"><path d="M12 15V4"/><path d="M7 9l5-5 5 5"/><path d="M4 20h16"/></symbol>
+  <symbol id="i-new" viewBox="0 0 24 24"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/><path d="M12 11v6"/><path d="M9 14h6"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="M9 7l-5 5 5 5"/><path d="M15 7l5 5-5 5"/></symbol>
+  <symbol id="i-move" viewBox="0 0 24 24"><path d="M3 6h6l2 2h10v11H3z"/><path d="M10 13h7"/><path d="M15 11l2 2-2 2"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="1"/><path d="M16 8V4H4v12h4"/></symbol>
+  <symbol id="i-window" viewBox="0 0 24 24"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M19 14v6H4V5h6"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 24 24"><path d="M20 11.5l-8.2 8.2a5 5 0 0 1-7.1-7.1l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7l-8.3 8.3a1.7 1.7 0 0 1-2.4-2.4l7.6-7.6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-dash" viewBox="0 0 24 24"><path d="M6 12h12"/></symbol>
+</svg>
+
+<header class="hero wrap">
+  <p class="eyebrow">Roundcube-Plugin · edit_subject 1.0.3</p>
+  <h1>Den <span class="mark">Betreff</span> einer Mail nachträglich ändern</h1>
+  <p class="lead">Eine Mail, die schon im Postfach liegt, bekommt einen neuen Betreff. Die Änderung steht in der Mail selbst und ist in jedem Mailprogramm sichtbar, nicht nur in Roundcube.</p>
+  <p class="lead2">IMAP-Nachrichten lassen sich auf dem Server nicht verändern. Das Plugin legt deshalb eine geänderte Fassung im selben Ordner ab, prüft sie und löscht erst danach das Original.</p>
+  <ul class="facts" aria-label="Voraussetzungen und Lizenz">
+    <li>Roundcube 1.6 und 1.7, Skin Elastic</li>
+    <li>PHP ab 8.1</li>
+    <li>IMAP-Server mit UIDPLUS</li>
+    <li>Deutsch und Englisch</li>
+    <li>GPL-3.0-or-later</li>
+  </ul>
+</header>
+
+<main>
+<section class="wrap sec" aria-labelledby="h-demo">
+  <div class="sec-head">
+    <h2 id="h-demo">Ausprobieren</h2>
+    <p>Eine Mail wählen, über <b>Mehr</b> den Eintrag <b>Betreff bearbeiten</b> öffnen und speichern. Rechts steht, was dabei auf dem IMAP-Server passiert, darunter, was sich im Kopf der Mail ändert. Mit den Schaltern am Server lassen sich Fehlerfälle durchspielen.</p>
+  </div>
+  <noscript><p class="fine">Die Demo braucht JavaScript.</p></noscript>
+
+  <div class="demo">
+    <div class="demo-left">
+      <div class="rc" id="rc">
+        <div class="rc-head">
+          <div class="rc-title"><b>Posteingang</b><span id="rc-count"></span></div>
+          <div class="rc-toolbar" role="toolbar" aria-label="Nachricht">
+            <button type="button" class="tb" data-inert title="In der Demo ohne Funktion"><svg class="ic" aria-hidden="true"><use href="#i-reply"/></svg><span>Antworten</span></button>
+            <button type="button" class="tb" data-inert title="In der Demo ohne Funktion"><svg class="ic" aria-hidden="true"><use href="#i-replyall"/></svg><span>Allen antworten</span></button>
+            <button type="button" class="tb" data-inert title="In der Demo ohne Funktion"><svg class="ic" aria-hidden="true"><use href="#i-forward"/></svg><span>Weiterleiten</span></button>
+            <button type="button" class="tb" data-inert title="In der Demo ohne Funktion"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg><span>Löschen</span></button>
+            <button type="button" class="tb" data-inert title="In der Demo ohne Funktion"><svg class="ic" aria-hidden="true"><use href="#i-flag"/></svg><span>Markieren</span></button>
+            <button type="button" class="tb tb-more" id="rc-more" aria-haspopup="menu" aria-expanded="false" aria-controls="rc-menu"><svg class="ic fill" aria-hidden="true"><use href="#i-more"/></svg><span>Mehr</span></button>
+          </div>
+        </div>
+        <div class="rc-main">
+          <div class="rc-list" id="rc-list" role="group" aria-label="Nachrichtenliste"></div>
+          <article class="rc-preview" id="rc-preview" aria-label="Vorschau"></article>
+        </div>
+        <div class="rc-menu" id="rc-menu" role="menu" aria-label="Mehr" hidden>
+          <button type="button" role="menuitem" aria-disabled="true" title="In der Demo ohne Funktion"><svg class="ic" aria-hidden="true"><use href="#i-print"/></svg>Nachricht drucken</button>
+          <button type="button" role="menuitem" aria-disabled="true" title="In der Demo ohne Funktion"><svg class="ic" aria-hidden="true"><use href="#i-import"/></svg>Importieren</button>
+          <button type="button" role="menuitem" aria-disabled="true" title="In der Demo ohne Funktion"><svg class="ic" aria-hidden="true"><use href="#i-export"/></svg>Exportieren</button>
+          <button type="button" role="menuitem" aria-disabled="true" title="In der Demo ohne Funktion"><svg class="ic" aria-hidden="true"><use href="#i-new"/></svg>Als neue Nachricht öffnen</button>
+          <button type="button" role="menuitem" aria-disabled="true" title="In der Demo ohne Funktion"><svg class="ic" aria-hidden="true"><use href="#i-code"/></svg>Quelltext anzeigen</button>
+          <button type="button" role="menuitem" aria-disabled="true" title="In der Demo ohne Funktion"><svg class="ic" aria-hidden="true"><use href="#i-move"/></svg>Verschieben nach …</button>
+          <button type="button" role="menuitem" aria-disabled="true" title="In der Demo ohne Funktion"><svg class="ic" aria-hidden="true"><use href="#i-copy"/></svg>Kopieren nach …</button>
+          <button type="button" role="menuitem" aria-disabled="true" title="In der Demo ohne Funktion"><svg class="ic" aria-hidden="true"><use href="#i-window"/></svg>In neuem Fenster öffnen</button>
+          <button type="button" role="menuitem" class="es" id="rc-edit"><svg class="ic" aria-hidden="true"><use href="#i-pencil"/></svg>Betreff bearbeiten</button>
+        </div>
+        <div class="rc-scrim" id="rc-scrim" hidden>
+          <div class="rc-dialog" id="rc-dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
+            <div class="dlg-head"><span id="dlg-title">Betreff bearbeiten</span><button type="button" class="dlg-x" id="dlg-x" aria-label="Schließen">×</button></div>
+            <div class="dlg-body">
+              <label for="edit-subject-input">Betreff</label>
+              <input type="text" id="edit-subject-input" autocomplete="off" spellcheck="true" dir="auto" aria-describedby="edit-subject-notice">
+              <p class="hint" id="edit-subject-notice">Die Mail wird auf dem Server durch eine geänderte Fassung ersetzt.</p>
+            </div>
+            <div class="dlg-foot">
+              <button type="button" class="btn btn-primary" id="dlg-save">Speichern</button>
+              <button type="button" class="btn" id="dlg-cancel">Abbrechen</button>
+            </div>
+          </div>
+        </div>
+        <div class="rc-toasts" id="rc-toasts" role="status" aria-live="polite"></div>
+      </div>
+
+      <section class="kopf" aria-labelledby="h-kopf">
+        <div class="kopf-intro">
+          <h3 id="h-kopf">Nur der Betreff ändert sich</h3>
+          <p>Das Plugin ersetzt das Subject-Feld an derselben Stelle; trägt eine Mail mehrere, dann das letzte, denn das zeigt Roundcube an. Alle anderen Kopfzeilen und der Körper bleiben Byte für Byte erhalten, ebenso Flags und Eingangsdatum. Zeichen außerhalb von ASCII schreibt es als UTF-8-Encoded-Words nach RFC 2047.</p>
+        </div>
+        <div class="kopf-head"><span class="chip" id="k-chip"></span><span class="kopf-sub" id="k-sub"></span><span class="kopf-uids" id="k-uids"></span></div>
+        <div class="code-scroll"><pre class="hdr" id="k-pre"></pre></div>
+        <dl class="kopf-facts" id="k-facts"></dl>
+        <div class="kopf-opt">
+          <p>Mit <code>$config['edit_subject_keep_original'] = true;</code> folgt direkt auf das neue Feld zusätzlich der ursprüngliche Wert:</p>
+          <div class="code-scroll"><pre class="hdr" id="k-x"></pre></div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="srv" aria-labelledby="h-srv">
+      <div class="srv-head">
+        <h3 id="h-srv">IMAP-Server</h3>
+        <span class="srv-box" id="srv-box"></span>
+      </div>
+      <fieldset class="scen" id="scen">
+        <legend>Der Server verhält sich</legend>
+        <label><input type="radio" name="scen" id="scen-normal" value="normal" checked><span>normal</span></label>
+        <label><input type="radio" name="scen" id="scen-quota" value="quota"><span>Postfach voll</span></label>
+        <label><input type="radio" name="scen" id="scen-nouidplus" value="nouidplus"><span>ohne UIDPLUS</span></label>
+        <label><input type="radio" name="scen" id="scen-deletefail" value="deletefail"><span>Löschen wirkt nicht</span></label>
+      </fieldset>
+      <div class="mbox-wrap">
+        <table class="mbox">
+          <thead><tr><th scope="col">UID</th><th scope="col">Betreff</th><th scope="col">Flags</th></tr></thead>
+          <tbody id="mbox"></tbody>
+        </table>
+      </div>
+      <p class="copies" id="copies"></p>
+      <ol class="steps" id="steps" aria-label="Ablauf beim Speichern"></ol>
+      <p class="rule">Grundregel des Plugins: lieber abbrechen oder ein Duplikat hinterlassen, als eine Mail zu verlieren.</p>
+      <button type="button" class="btn btn-quiet" id="reset">Demo zurücksetzen</button>
+    </aside>
+  </div>
+
+  <p class="fine">Simulation im Browser, ohne Server und ohne echte Mails. Die Oberfläche ist vereinfacht nach dem Skin Elastic; Beschriftungen und Meldungen stammen aus Roundcube und dem Plugin. Die IMAP-Befehle sind in der Testumgebung mitgeschnitten (Roundcube 1.7.6, Dovecot 2.4.5) und gekürzt, UIDs, Größen und Daten an die Demo angepasst. Den Kopf schreibt die Seite mit derselben Logik wie das Plugin.</p>
+</section>
+
+<section class="wrap sec" aria-labelledby="h-tests">
+  <div class="sec-head">
+    <h2 id="h-tests">Geprüft</h2>
+    <p>Alle Tests laufen in Docker gegen echte Server. Den Zustand auf dem Server prüfen sie über eine eigene IMAP-Verbindung, nicht über Roundcube: Vor und nach jeder Bearbeitung vergleichen sie den SHA-256 des Körpers, jede Kopfzeile, die Flags, INTERNALDATE und die Zahl der Mails im Ordner.</p>
+  </div>
+  <div class="tbl">
+    <table class="results">
+      <caption>Testergebnisse je Lauf</caption>
+      <thead>
+        <tr><th scope="col">Lauf</th><th scope="col">Unit-Tests, PHP 8.4.28</th><th scope="col">Unit-Tests, PHP 8.1.34</th><th scope="col">Integration und Browser</th></tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row">Roundcube 1.7.6</th><td><span class="pass">211 von 211</span></td><td><span class="pass">211 von 211</span></td><td><span class="pass">131 von 131</span></td></tr>
+        <tr><th scope="row">Roundcube 1.6.21</th><td><span class="pass">211 von 211</span></td><td><span class="pass">211 von 211</span></td><td><span class="pass">130 von 130, 1 übersprungen*</span></td></tr>
+        <tr><th scope="row">Roundcube 1.7.6 mit <code>messages_cache</code></th><td><span class="pass">211 von 211</span></td><td><span class="pass">211 von 211</span></td><td><span class="pass">131 von 131</span></td></tr>
+        <tr class="zip-first"><th scope="row">Release-ZIP 1.0.3 unter 1.7.6</th><td class="na">entfällt</td><td class="na">entfällt</td><td><span class="pass">131 von 131</span></td></tr>
+        <tr><th scope="row">Release-ZIP 1.0.3 unter 1.6.21</th><td class="na">entfällt</td><td class="na">entfällt</td><td><span class="pass">130 von 130, 1 übersprungen*</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="notes">
+    <p>* Den Plugin-Hook <code>message_delete</code> gibt es erst ab Roundcube 1.7, der Test dafür entfällt unter 1.6.21.</p>
+    <p>Stand 24.11.2026, Version 1.0.3. Die ersten drei Zeilen sind <code>make test-all</code> aus einem frischen Klon. In den letzten beiden ist der entpackte Inhalt des Release-ZIP das Plugin-Verzeichnis.</p>
+    <p>Testumgebung: Dovecot 2.4.5 in drei Varianten (mit ACL-Ordnern, ohne UIDPLUS, mit 256 KiB Quota), Roundcube mit einem Testkit, das Speicherfehler simuliert, und Chromium über Playwright für die Oberfläche.</p>
+  </div>
+  <ul class="proofs">
+    <li><b>Große Mails</b>Die Mail liegt nie vollständig im Arbeitsspeicher. Bei 25 MB lag die Spitze in den Tests bei 6 MiB, das <code>memory_limit</code> der Images ist 64M.</li>
+    <li><b>Gegenprobe</b>Absichtlich in das Plugin eingebaute Fehler lassen die Tests scheitern. Ein grüner Lauf ist also kein Zufall der Testumgebung. Die Tests aus dem ersten Sicherheitsaudit scheitern gegen Version 1.0.0: 39 Unit-Testfälle, 16 von 20 Integrationstests und 3 von 4 Browsertests. Die Tests aus dem zweiten scheitern gegen Version 1.0.1: 42 Unit-Testfälle, ein weiterer hängt dort, dazu 7 von 12 Integrationstests und 2 von 2 Browsertests. Die Tests aus dem dritten scheitern gegen den Arbeitsstand vor dessen Korrekturen: 33 Unit-Testfälle und 4 von 4 Integrationstests.</li>
+  </ul>
+</section>
+
+<section class="wrap sec" aria-labelledby="h-install">
+  <div class="sec-head">
+    <h2 id="h-install">Installation</h2>
+    <p>Voraussetzungen: Roundcube 1.7 (getestet mit 1.7.6) oder 1.6 (getestet mit 1.6.21) mit dem Skin Elastic, PHP ab 8.1 und ein IMAP-Server mit UIDPLUS. Meldet der Server Zugriffsrechte (ACL), braucht das Konto im Ordner die Rechte <code>i</code>, <code>t</code> und <code>e</code>, bei Mails mit Markierungen zusätzlich <code>s</code> und <code>w</code>.</p>
+  </div>
+  <ol class="install">
+    <li><div>
+      <p>Das ZIP im Verzeichnis <code>plugins/</code> der Roundcube-Installation entpacken. Es entsteht <code>plugins/edit_subject/</code>.</p>
+      <div class="codeblock"><pre id="c1">cd /pfad/zu/roundcube/plugins
+unzip edit_subject-1.0.3.zip</pre><button type="button" class="copy" data-copy="c1">Kopieren</button></div>
+    </div></li>
+    <li><div>
+      <p>Das Plugin in <code>config/config.inc.php</code> aktivieren:</p>
+      <div class="codeblock"><pre id="c2">$config['plugins'] = ['edit_subject' /* , weitere Plugins */];</pre><button type="button" class="copy" data-copy="c2">Kopieren</button></div>
+    </div></li>
+    <li><div>
+      <p>Optional <code>config.inc.php.dist</code> im Plugin-Verzeichnis nach <code>config.inc.php</code> kopieren und <code>edit_subject_keep_original</code> setzen. Ein Datenbankschema ist nicht nötig.</p>
+    </div></li>
+  </ol>
+  <p class="fine">Im Docker-Image <code>roundcube/roundcubemail</code> das Verzeichnis nach <code>/var/www/html/plugins/edit_subject</code> einhängen und <code>edit_subject</code> in <code>ROUNDCUBEMAIL_PLUGINS</code> aufnehmen.</p>
+</section>
+
+<section class="wrap sec" aria-labelledby="h-hints">
+  <h2 id="h-hints">Gut zu wissen</h2>
+  <ul class="hints">
+    <li><b>Neue UID</b>Für den Server ist die Mail danach eine neue Nachricht. Andere IMAP-Programme sehen beim nächsten Abgleich eine entfernte und eine neue Mail. POP3-Abrufe, die Mails auf dem Server lassen, laden sie unter Umständen erneut herunter.</li>
+    <li><b>DKIM</b>Signaturen über das Feld <code>Subject</code> werden ungültig, das betrifft praktisch jede DKIM-Signatur. S/MIME- und PGP/MIME-Signaturen über den Körper bleiben gültig.</li>
+    <li><b>Quota</b>Während des Vorgangs liegt die Mail kurz doppelt im Postfach. Ist es voll, scheitert das Ablegen der Kopie, und das Original bleibt unverändert.</li>
+    <li><b>Reihenfolge</b>Nach dem Speichern steht die Mail an der alten Stelle. Beim nächsten Neuladen ordnet Roundcube sie nach der gewählten Sortierung ein; mit der Voreinstellung (keine Sortierung, absteigend) steht sie dann oben.</li>
+  </ul>
+</section>
+</main>
+
+<footer class="wrap foot">
+  <span>edit_subject 1.0.3</span>
+  <span>Lizenz GPL-3.0-or-later</span>
+  <span>© 2026 Kaleidostar</span>
+  <span>Stand 24.11.2026</span>
+</footer>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ---------- Kopf neu schreiben: Nachbau von lib/edit_subject_header.php ---------- */
+  const MAX_LENGTH = 500;
+  const MAX_INPUT_BYTES = 16384;
+  const MAX_ENCODED_WORD = 75;
+  const MAX_ENCODED_LINE = 76;
+  const MAX_LINE = 78;
+  const PREFIX = 'Subject: ';
+  const encoder = new TextEncoder();
+  const utf8len = (s) => encoder.encode(s).length;
+  const cpLength = (s) => Array.from(s).length;
+
+  // Steuerzeichen werden zu Leerzeichen, Leerraum an den Enden fällt weg.
+  // Entspricht [\s\p{Z}] mit /u in PHP (PCRE mit UCP) nach dem Ersetzen;
+  // U+180E zählt dort zum Leerraum. Wie in PHP zwei am Anfang verankerte
+  // Ausdrücke: einer mit "…$" liefe bei Leerraum in der Mitte quadratisch.
+  function sanitize(s) {
+    const t = String(s)
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, ' ')
+      .replace(/^[\p{Z}\u180E]+/u, '');
+    return t.match(/^(?:[\s\S]*[^\p{Z}\u180E])?/u)[0];
+  }
+
+  // Wie sanitize() in PHP ablehnt: über MAX_INPUT_BYTES Rohlänge oder nach
+  // dem Bereinigen über MAX_LENGTH Zeichen.
+  function tooLong(s) {
+    return utf8len(String(s)) > MAX_INPUT_BYTES || cpLength(sanitize(s)) > MAX_LENGTH;
+  }
+
+  function isPlain(s) {
+    return /^[\x20-\x7E]*$/.test(s) && s.indexOf('=?') === -1;
+  }
+
+  // Faltstelle: ein einzelnes Leerzeichen zwischen zwei Nicht-Leerzeichen
+  function foldPosition(line, max, min, forward) {
+    const candidates = [];
+    for (let i = Math.max(min, 1); i < line.length - 1; i++) {
+      if (line[i] === ' '
+        && line[i - 1] !== ' ' && line[i - 1] !== '\t'
+        && line[i + 1] !== ' ' && line[i + 1] !== '\t') {
+        candidates.push(i);
+      }
+    }
+    if (forward) {
+      return candidates.length ? candidates[0] : null;
+    }
+    let found = null;
+    for (const i of candidates) {
+      if (i <= max) {
+        found = i;
+      }
+    }
+    return found;
+  }
+
+  function foldPlain(field) {
+    const lines = [];
+    let min = PREFIX.length;
+    while (field.length > MAX_LINE) {
+      let pos = foldPosition(field, MAX_LINE, min, false);
+      if (pos === null) {
+        pos = foldPosition(field, field.length - 1, min, true);
+        if (pos === null) {
+          break;
+        }
+      }
+      lines.push(field.slice(0, pos));
+      field = field.slice(pos);
+      min = 1;
+    }
+    lines.push(field);
+    return lines.join('\r\n');
+  }
+
+  function base64(s) {
+    let bin = '';
+    for (const b of encoder.encode(s)) {
+      bin += String.fromCharCode(b);
+    }
+    return btoa(bin);
+  }
+
+  function encodedWords(subject, offset) {
+    const overhead = '=?UTF-8?B??='.length;
+    const maxBytes = (limit) => Math.floor(Math.floor((limit - overhead) / 4) * 4 / 4) * 3;
+    const words = [];
+    let limit = maxBytes(Math.min(MAX_ENCODED_WORD, MAX_ENCODED_LINE - offset));
+    let chunk = '';
+    let bytes = 0;
+    for (const ch of subject) {
+      const n = utf8len(ch);
+      if (chunk !== '' && bytes + n > limit) {
+        words.push('=?UTF-8?B?' + base64(chunk) + '?=');
+        chunk = '';
+        bytes = 0;
+        limit = maxBytes(Math.min(MAX_ENCODED_WORD, MAX_ENCODED_LINE - 1));
+      }
+      chunk += ch;
+      bytes += n;
+    }
+    if (chunk !== '') {
+      words.push('=?UTF-8?B?' + base64(chunk) + '?=');
+    }
+    return words;
+  }
+
+  function subjectField(subject) {
+    if (subject === '') {
+      return 'Subject:\r\n';
+    }
+    if (isPlain(subject)) {
+      return foldPlain(PREFIX + subject) + '\r\n';
+    }
+    return PREFIX + encodedWords(subject, PREFIX.length).join('\r\n ') + '\r\n';
+  }
+
+  function fieldName(raw) {
+    const m = /^([!-9;-~]+)[ \t]*:/.exec(raw);
+    return m ? m[1].toLowerCase() : null;
+  }
+
+  // Erstes Subject-Feld an Ort und Stelle ersetzen, weitere entfernen,
+  // ein fehlendes am Ende anhängen; alle anderen Felder bleiben, wie sie sind.
+  function rewrite(fields, subject) {
+    const out = [];
+    // das letzte Subject-Feld wird ersetzt, frühere entfallen
+    const last = fields.map(fieldName).lastIndexOf('subject');
+    const replaced = last >= 0;
+    fields.forEach((f, i) => {
+      if (fieldName(f) !== 'subject') {
+        out.push(f);
+      } else if (i === last) {
+        out.push(subjectField(subject));
+      }
+    });
+    if (!replaced) {
+      const last = out.length - 1;
+      if (last >= 0 && !out[last].endsWith('\n')) {
+        out[last] += '\r\n';
+      }
+      out.push(subjectField(subject));
+    }
+    return out;
+  }
+
+  function xOriginal(fields) {
+    const f = fields.find((x) => fieldName(x) === 'subject');
+    if (!f) {
+      return 'X-Original-Subject:\r\n';
+    }
+    let value = f.slice(f.indexOf(':') + 1);
+    if (!value.endsWith('\n')) {
+      value += '\r\n';
+    }
+    return 'X-Original-Subject:' + value;
+  }
+
+  window.editSubjectShowcase = { sanitize, subjectField, cpLength, tooLong, rewrite, MAX_LENGTH, MAX_INPUT_BYTES };
+
+  /* ---------- Texte aus Roundcube und dem Plugin (de_DE) ---------- */
+  const MSG = {
+    loading: 'Betreff wird geladen...',
+    saving: 'Betreff wird gespeichert...',
+    subjectchanged: 'Betreff geändert.',
+    errortoolong: 'Der Betreff ist zu lang (höchstens 500 Zeichen). Es wurde nichts geändert.',
+    errornouidplus: 'Der Mailserver unterstützt die IMAP-Erweiterung UIDPLUS nicht. Ohne sie lässt sich der Betreff nicht sicher ändern. Es wurde nichts geändert.',
+    erroroverquota: 'Das Postfach ist voll, die geänderte Fassung konnte nicht gespeichert werden. Die ursprüngliche Mail ist unverändert.',
+    errordelete: 'Die ursprüngliche Mail ließ sich nicht entfernen, die Änderung wurde deshalb zurückgenommen. Die Mail ist unverändert.',
+    nosubject: '(kein Betreff)',
+  };
+
+  const STEPS = [
+    ['Anfrage prüfen', 'Nur POST mit gültigem Request-Token; UID, Ordner, Kontosperre und Gesamtgrößenlimit von 64 MiB.'],
+    ['Original lesen', 'Flags, Eingangsdatum, Größe und Kopf der Mail. Steht dort noch der Betreff aus dem Dialog?'],
+    ['Voraussetzungen prüfen', 'Meldet der Server UIDPLUS? Reichen die Rechte im Ordner?'],
+    ['Neue Fassung bauen', 'Neuer Kopf und unveränderter Körper in eine Temp-Datei mit Rechten 0600.'],
+    ['Kopie ablegen', 'APPEND mit denselben Flags und demselben Eingangsdatum.'],
+    ['Kopie prüfen', 'Größe, Kopf, Betreff, exakte Flags, Eingangsdatum und SHA-256 des Körpers.'],
+    ['Original löschen', 'Original und Kopie samt Flags erneut prüfen. Dann genau die alte UID, per UID EXPUNGE.'],
+    ['Nachprüfen', 'Ist das Original wirklich weg und die Kopie noch da?'],
+    ['Liste aktualisieren', 'Die Kopie übernimmt die Zeile des Originals.'],
+  ];
+  const ROLLBACK = ['Rückbau', 'Markierung zurücknehmen, Original wiederfinden, erst dann die Kopie entfernen.'];
+
+  /* ---------- Beispieldaten: Postfach einkauf@lindenhof.example ---------- */
+  const UIDVALIDITY = 1795344661;
+  const RIGHTS = 'lrwstipekxacd';
+  const EXAMPLE_SUBJECT = 'Lieferadresse Fenster Nordflügel';
+  const MULTIPART = 'multipart/mixed;\r\n boundary="------------';
+
+  const MAILS = [
+    {
+      id: 'm42', uid: 42, name: 'Mara Schulz', addr: 'mara.schulz@nordbau.example',
+      mx: 'mx.nordbau.example', ip: '192.0.2.25', smtp: '4hW2pL7xQe',
+      date: 'Fri, 20 Nov 2026 16:41:27 +0100', list: '20.11.2026 16:41', internal: '20-Nov-2026 15:41:30 +0000',
+      msgid: '<7f3e91c2.aufmass@nordbau.example>', raw: null, subject: '',
+      extra: [], ctype: MULTIPART + 'Zr8sKq2mWb"', flags: [], body: 1843516,
+      text: 'Hallo zusammen,\n\nanbei die Fotos vom Aufmaß im zweiten Stock.\n\nGruß\nMara',
+      att: ['Aufmass-1.jpg · 912 KB', 'Aufmass-2.jpg · 884 KB'],
+    },
+    {
+      id: 'm41', uid: 41, name: 'Jonas Weber', addr: 'jonas.weber@nordbau.example',
+      mx: 'mx.nordbau.example', ip: '192.0.2.25', smtp: '4hQ7Tz0Kd2',
+      date: 'Tue, 17 Nov 2026 09:14:03 +0100', list: '17.11.2026 09:14', internal: '17-Nov-2026 08:14:05 +0000',
+      msgid: '<c41f3a8e.2b7d@nordbau.example>', raw: 'AW: AW: Fwd: kurze Frage', subject: 'AW: AW: Fwd: kurze Frage',
+      extra: ['In-Reply-To: <a7e2c9.frage@lindenhof.example>'], ctype: MULTIPART + 'k3XyQb9pTn"',
+      flags: ['\\Flagged', '\\Seen', '$label1'], body: 47812,
+      text: 'Hallo zusammen,\n\nan welche Adresse sollen die Fenster für den Nordflügel geliefert werden? Den Lieferplan habe ich angehängt.\n\nViele Grüße\nJonas',
+      att: ['Lieferplan.pdf · 46 KB'],
+    },
+    {
+      id: 'm39', uid: 39, name: 'Paketdienst Nord', addr: 'service@paketdienst.example',
+      mx: 'out.paketdienst.example', ip: '198.51.100.14', smtp: '8sKd02LmZa',
+      date: 'Mon, 16 Nov 2026 07:02:51 +0100', list: '16.11.2026 07:02', internal: '16-Nov-2026 06:02:55 +0000',
+      msgid: '<00340434.avis@paketdienst.example>', raw: 'Ihre Sendung 00340434 kommt morgen', subject: 'Ihre Sendung 00340434 kommt morgen',
+      extra: [], ctype: 'text/plain; charset=UTF-8', flags: ['\\Seen'], body: 3118,
+      text: 'Guten Tag,\n\nIhre Sendung 00340434 wird morgen zwischen 9 und 13 Uhr zugestellt.\n\nIhr Paketdienst Nord',
+      att: [],
+    },
+    {
+      id: 'm36', uid: 36, name: 'Druckerei Lindner', addr: 'post@druckerei-lindner.example',
+      mx: 'mail.druckerei-lindner.example', ip: '203.0.113.7', smtp: '2nVb5TqY0c',
+      date: 'Thu, 12 Nov 2026 11:30:09 +0100', list: '12.11.2026 11:30', internal: '12-Nov-2026 10:30:12 +0000',
+      msgid: '<4711.korrektur@druckerei-lindner.example>',
+      raw: '=?UTF-8?Q?Ihr_Auftrag_4711_=E2=80=93_Druckfreigabe?=', subject: 'Ihr Auftrag 4711 – Druckfreigabe',
+      extra: [], ctype: MULTIPART + 'Pq4Lw7Nc2s"', flags: ['\\Answered', '\\Seen'], body: 128640,
+      text: 'Sehr geehrte Damen und Herren,\n\nanbei der Korrekturabzug zu Ihrem Auftrag 4711. Bitte geben Sie ihn bis Montag frei.\n\nMit freundlichen Grüßen\nDruckerei Lindner',
+      att: ['Korrekturabzug-4711.pdf · 124 KB'],
+    },
+  ];
+
+  function buildFields(m) {
+    const f = [
+      `Return-Path: <${m.addr}>\r\n`,
+      `Received: from ${m.mx} (${m.mx} [${m.ip}])\r\n\tby mail.lindenhof.example with ESMTPS id ${m.smtp}\r\n\tfor <einkauf@lindenhof.example>; ${m.date}\r\n`,
+      `Message-ID: ${m.msgid}\r\n`,
+      `Date: ${m.date}\r\n`,
+      `From: ${m.name} <${m.addr}>\r\n`,
+      'To: Einkauf Lindenhof <einkauf@lindenhof.example>\r\n',
+    ];
+    if (m.raw !== null) {
+      f.push(`Subject: ${m.raw}\r\n`);
+    }
+    for (const x of m.extra) {
+      f.push(x + '\r\n');
+    }
+    f.push('MIME-Version: 1.0\r\n', `Content-Type: ${m.ctype}\r\n`);
+    return f;
+  }
+
+  /* ---------- Hilfen ---------- */
+  const $ = (id) => document.getElementById(id);
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const STEP_MS = reduceMotion ? 0 : 560;
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const num = (n) => n.toLocaleString('de-DE');
+  const headerBytes = (fields) => utf8len(fields.join('')) + 2;
+  const svg = (id, cls) => `<svg class="ic ${cls || ''}" aria-hidden="true"><use href="#${id}"/></svg>`;
+  const splitLines = (field) => field.replace(/\r\n$/, '').split('\r\n');
+  const SYSTEM_FLAGS = ['\\Answered', '\\Flagged', '\\Deleted', '\\Seen', '\\Draft'];
+
+  // Reihenfolge wie bei Dovecot: Systemflags, \Recent, dann Schlüsselwörter
+  function canon(flags, extra) {
+    const all = flags.concat(extra || []);
+    const sys = SYSTEM_FLAGS.filter((f) => all.includes(f));
+    const recent = all.includes('\\Recent') ? ['\\Recent'] : [];
+    const keywords = all.filter((f) => !f.startsWith('\\'));
+    return sys.concat(recent, keywords).join(' ');
+  }
+
+  function neededRights(flags) {
+    const need = ['r', 'i', 't', 'e'];
+    for (const f of flags) {
+      const l = f.toLowerCase();
+      if (l === '\\seen') {
+        need.push('s');
+      } else if (l === '\\deleted') {
+        need.push('t');
+      } else {
+        need.push('w');
+      }
+    }
+    return [...new Set(need)];
+  }
+
+  const els = {
+    rc: $('rc'), count: $('rc-count'), list: $('rc-list'), preview: $('rc-preview'),
+    more: $('rc-more'), menu: $('rc-menu'), edit: $('rc-edit'),
+    scrim: $('rc-scrim'), dialog: $('rc-dialog'), input: $('edit-subject-input'),
+    save: $('dlg-save'), cancel: $('dlg-cancel'), x: $('dlg-x'), toasts: $('rc-toasts'),
+    box: $('mbox'), boxLabel: $('srv-box'), copies: $('copies'), steps: $('steps'),
+    scen: $('scen'), reset: $('reset'),
+    chip: $('k-chip'), sub: $('k-sub'), uids: $('k-uids'), pre: $('k-pre'), facts: $('k-facts'), xpre: $('k-x'),
+  };
+
+  let state;
+
+  function initState() {
+    const mails = MAILS.map((m) => ({ ...m, flags: m.flags.slice(), fields: buildFields(m) }));
+    state = {
+      mails,
+      order: mails.map((m) => m.id),
+      box: mails.map((m) => ({ uid: m.uid, mail: m.id, subject: m.subject, hasSubject: m.raw !== null, flags: m.flags.slice() })),
+      uidnext: 43,
+      selected: 'm41',
+      scenario: 'normal',
+      busy: false,
+      dialog: null,
+      diff: null,
+      diffBefore: null,
+    };
+    const example = byId('m41');
+    state.diff = diffFor('beispiel', example, EXAMPLE_SUBJECT);
+  }
+
+  const byId = (id) => state.mails.find((m) => m.id === id);
+  const boxRow = (uid) => state.box.find((r) => r.uid === uid);
+  const seq = (uid) => state.box.map((r) => r.uid).sort((a, b) => a - b).indexOf(uid) + 1;
+
+  /* ---------- Oberfläche ---------- */
+  function renderList(freshId) {
+    els.list.textContent = '';
+    for (const m of state.order.map(byId)) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'rc-row' + (m.flags.includes('\\Seen') ? '' : ' unread') + (m.id === freshId ? ' fresh' : '');
+      b.dataset.id = m.id;
+      b.disabled = state.busy;
+      b.setAttribute('aria-pressed', String(m.id === state.selected));
+      b.title = 'UID ' + m.uid;
+      b.innerHTML = '<span class="r-from"></span><span class="r-date"></span><span class="r-subj"></span><span class="r-ico"></span>';
+      b.children[0].textContent = m.name;
+      b.children[1].textContent = m.list;
+      b.children[2].textContent = m.subject || MSG.nosubject;
+      b.children[3].innerHTML = (m.att.length ? svg('i-clip') : '') + (m.flags.includes('\\Flagged') ? svg('i-flagfill', 'fill flag') : '');
+      els.list.append(b);
+    }
+    const unread = state.mails.filter((m) => !m.flags.includes('\\Seen')).length;
+    els.count.textContent = `${state.mails.length} Nachrichten, ${unread} ungelesen`;
+  }
+
+  function renderPreview() {
+    const m = byId(state.selected);
+    const p = els.preview;
+    p.textContent = '';
+    if (!m) {
+      p.innerHTML = '<p class="rc-empty">Keine Nachricht ausgewählt.</p>';
+      return;
+    }
+    const h = document.createElement('h4');
+    h.textContent = m.subject || MSG.nosubject;
+    const dl = document.createElement('dl');
+    dl.className = 'rc-meta';
+    for (const [k, v] of [['Von', `${m.name} <${m.addr}>`], ['An', 'Einkauf Lindenhof'], ['Datum', m.list]]) {
+      const dt = document.createElement('dt');
+      const dd = document.createElement('dd');
+      dt.textContent = k;
+      dd.textContent = v;
+      dl.append(dt, dd);
+    }
+    const t = document.createElement('div');
+    t.className = 'rc-text';
+    t.textContent = m.text;
+    p.append(h, dl, t);
+    if (m.att.length) {
+      const a = document.createElement('div');
+      a.className = 'rc-att';
+      for (const name of m.att) {
+        const s = document.createElement('span');
+        s.innerHTML = svg('i-clip');
+        s.append(name);
+        a.append(s);
+      }
+      p.append(a);
+    }
+  }
+
+  function syncControls() {
+    els.more.disabled = state.busy;
+    els.edit.setAttribute('aria-disabled', String(!state.selected || state.busy));
+    for (const i of els.scen.querySelectorAll('input')) {
+      i.disabled = state.busy;
+    }
+    els.reset.disabled = state.busy;
+    for (const b of els.list.querySelectorAll('.rc-row')) {
+      b.disabled = state.busy;
+    }
+  }
+
+  function toast(type, text, ms) {
+    const el = document.createElement('div');
+    el.className = 'toast ' + type;
+    el.innerHTML = type === 'loading' ? '<span class="spin" aria-hidden="true"></span><span></span>'
+      : svg(type === 'ok' ? 'i-check' : 'i-x') + '<span></span>';
+    el.lastChild.textContent = text;
+    el.addEventListener('click', () => el.remove());
+    els.toasts.append(el);
+    if (ms) {
+      setTimeout(() => el.remove(), ms);
+    }
+    return el;
+  }
+
+  function openMenu() {
+    if (state.busy) {
+      return;
+    }
+    syncControls();
+    els.menu.hidden = false;
+    const frame = els.rc.getBoundingClientRect();
+    const button = els.more.getBoundingClientRect();
+    const top = Math.round(button.bottom - frame.top + 4);
+    els.menu.style.top = top + 'px';
+    els.menu.style.right = Math.max(8, Math.round(frame.right - button.right)) + 'px';
+    els.menu.style.maxHeight = Math.max(120, Math.round(frame.height - top - 8)) + 'px';
+    els.more.setAttribute('aria-expanded', 'true');
+    const target = els.edit.getAttribute('aria-disabled') === 'true' ? els.menu.querySelector('button') : els.edit;
+    target.focus();
+  }
+
+  function closeMenu() {
+    els.menu.hidden = true;
+    els.more.setAttribute('aria-expanded', 'false');
+  }
+
+  async function startEdit() {
+    const m = byId(state.selected);
+    if (!m || state.busy) {
+      return;
+    }
+    state.busy = true;
+    syncControls();
+    const loading = toast('loading', MSG.loading);
+    await sleep(reduceMotion ? 0 : 350);
+    loading.remove();
+    state.busy = false;
+    syncControls();
+    openDialog(m);
+  }
+
+  function openDialog(m) {
+    state.dialog = { id: m.id, original: m.subject };
+    state.diffBefore = state.diff;
+    els.input.value = m.subject;
+    state.diff = diffFor('vorschau', m, m.subject);
+    renderDiff();
+    els.scrim.hidden = false;
+    els.input.focus();
+    els.input.select();
+  }
+
+  function closeDialog() {
+    els.scrim.hidden = true;
+    state.dialog = null;
+    els.more.focus();
+  }
+
+  function cancelDialog() {
+    if (state.diffBefore) {
+      state.diff = state.diffBefore;
+      renderDiff();
+    }
+    closeDialog();
+  }
+
+  function saveDialog() {
+    const d = state.dialog;
+    if (!d) {
+      return;
+    }
+    const value = els.input.value;
+    // unverändert: nur den Dialog schließen, auf dem Server passiert nichts
+    if (value === d.original) {
+      cancelDialog();
+      return;
+    }
+    if (tooLong(value)) {
+      toast('err', MSG.errortoolong, 15000);
+      els.input.focus();
+      return;
+    }
+    const m = byId(d.id);
+    closeDialog();
+    runSave(m, value);
+  }
+
+  /* ---------- Server ---------- */
+  function renderBox() {
+    els.box.textContent = '';
+    for (const r of state.box.slice().sort((a, b) => a.uid - b.uid)) {
+      const tr = document.createElement('tr');
+      tr.className = [r.mail === state.selected ? 'sel' : '', r.badge ? 'copy' : '', r.deleted ? 'gone' : ''].join(' ').trim();
+      const subject = r.hasSubject ? (r.subject === '' ? '<span class="none">(leer)</span>' : '') : '<span class="none">(kein Subject-Feld)</span>';
+      tr.innerHTML = `<td>${r.uid}</td><td>${subject}</td><td></td>`;
+      if (r.hasSubject && r.subject !== '') {
+        tr.children[1].textContent = r.subject;
+      }
+      if (r.badge) {
+        const b = document.createElement('span');
+        b.className = 'badge' + (r.badge === 'geprüft' ? ' ok' : '');
+        b.textContent = r.badge;
+        tr.children[1].append(b);
+      }
+      tr.children[2].textContent = canon(r.flags, r.deleted ? ['\\Deleted'] : []) || '–';
+      els.box.append(tr);
+    }
+    els.boxLabel.textContent = `INBOX · UIDNEXT ${state.uidnext}`;
+    const versions = state.box.filter((r) => r.mail === state.selected);
+    els.copies.innerHTML = '<span>Fassungen der ausgewählten Mail auf dem Server:</span> <b></b> <span class="dots" aria-hidden="true"></span>';
+    els.copies.children[1].textContent = String(versions.length);
+    els.copies.children[2].innerHTML = versions.map((r) => (r.badge ? '<i class="copy"></i>' : '<i></i>')).join('');
+  }
+
+  function buildSteps() {
+    els.steps.textContent = '';
+    STEPS.forEach(([title, desc], i) => {
+      const li = document.createElement('li');
+      li.className = 'step';
+      li.dataset.i = String(i);
+      li.innerHTML = '<span class="ico" aria-hidden="true">' + svg('i-check', 'i-ok') + svg('i-x', 'i-no') + svg('i-dash', 'i-dash')
+        + '</span><div><div class="st"></div><div class="sd"></div><div class="sn"></div><div class="log" hidden></div><div class="sf" hidden></div></div>';
+      li.querySelector('.st').textContent = title;
+      li.querySelector('.sd').textContent = desc;
+      els.steps.append(li);
+    });
+  }
+
+  function stepEl(i) {
+    return els.steps.children[i];
+  }
+
+  function setStepText(i, [title, desc]) {
+    stepEl(i).querySelector('.st').textContent = title;
+    stepEl(i).querySelector('.sd').textContent = desc;
+  }
+
+  async function step(i, status, note, lines, foot) {
+    const li = stepEl(i);
+    li.className = 'step active';
+    await sleep(STEP_MS);
+    li.className = 'step ' + status;
+    li.querySelector('.sn').textContent = note;
+    const log = li.querySelector('.log');
+    log.textContent = '';
+    for (const [kind, text] of lines) {
+      const s = document.createElement('span');
+      s.className = kind;
+      s.textContent = text;
+      log.append(s);
+    }
+    log.hidden = lines.length === 0;
+    const sf = li.querySelector('.sf');
+    sf.textContent = foot || '';
+    sf.hidden = !foot;
+  }
+
+  function skipFrom(i) {
+    for (let k = i; k < STEPS.length; k++) {
+      stepEl(k).className = 'step skip';
+    }
+  }
+
+  function finish(loading, message, freshId) {
+    loading.remove();
+    if (message) {
+      toast(message[0], message[1], message[0] === 'err' ? 15000 : 4000);
+    }
+    state.busy = false;
+    renderList(freshId);
+    syncControls();
+  }
+
+  async function runSave(mail, input) {
+    const scenario = state.scenario;
+    const subject = sanitize(input);
+    const old = mail.uid;
+    const before = mail.fields.slice();
+    const after = rewrite(before, subject);
+    const body = mail.body;
+    const oldHead = headerBytes(before);
+    const newHead = headerBytes(after);
+    const oldSize = oldHead + body;
+    const newSize = newHead + body;
+    const flags = mail.flags.filter((f) => f !== '\\Recent');
+    const fl = flags.join(' ');
+    let n = 2;
+    const tag = () => 'A' + String(++n).padStart(4, '0');
+    const failed = () => diffFor('fehler', mail, subject);
+
+    state.busy = true;
+    syncControls();
+    buildSteps();
+    const loading = toast('loading', MSG.saving);
+
+    let t = tag();
+    await step(0, 'done', `POST mit gültigem Request-Token · UID ${old} · Ordner INBOX · Betreff aus dem Dialog`,
+      [['c', `${t} SELECT INBOX`], ['s', `${t} OK [READ-WRITE] Select completed.`]]);
+
+    const t1 = tag();
+    const t2 = tag();
+    await step(1, 'done', `Flags ${fl || '(keine)'} · Eingang ${mail.internal} · ${num(oldSize)} Byte`, [
+      ['c', `${t1} UID FETCH ${old} (UID FLAGS INTERNALDATE RFC822.SIZE)`],
+      ['s', `* ${seq(old)} FETCH (UID ${old} FLAGS (${fl}) INTERNALDATE "${mail.internal}" RFC822.SIZE ${oldSize})`],
+      ['c', `${t2} UID FETCH ${old} (BODY.PEEK[HEADER]<0.4194305>)`],
+      ['s', `* ${seq(old)} FETCH (UID ${old} BODY[HEADER]<0> {${oldHead}} …)`],
+    ]);
+
+    if (subject === mail.subject) {
+      await step(2, 'info', 'Der Betreff ist nach der Bereinigung unverändert. Auf dem Server passiert nichts.', []);
+      skipFrom(3);
+      state.diff = state.diffBefore || state.diff;
+      renderDiff();
+      return finish(loading, null);
+    }
+
+    if (scenario === 'nouidplus') {
+      await step(2, 'fail', 'UIDPLUS fehlt in der CAPABILITY-Antwort. Abbruch, bevor etwas geschrieben wird.', []);
+      skipFrom(3);
+      state.diff = failed();
+      renderDiff();
+      return finish(loading, ['err', MSG.errornouidplus]);
+    }
+
+    if (oldSize > 64 * 1024 * 1024) {
+      await step(2, 'fail', 'Die Mail überschreitet das Gesamtgrößenlimit von 64 MiB. Kopf und Körper werden nicht abgerufen.', []);
+      skipFrom(3);
+      state.diff = failed();
+      renderDiff();
+      return finish(loading, ['err', 'Die Mail ist größer als 64 MiB. Es wurde nichts geändert.']);
+    }
+
+    t = tag();
+    await step(2, 'done', `UIDPLUS vorhanden · nötige Rechte ${neededRights(flags).join(' ')} vorhanden`,
+      [['c', `${t} MYRIGHTS INBOX`], ['s', `* MYRIGHTS INBOX ${RIGHTS}`]]);
+
+    t = tag();
+    await step(3, 'done', `Neuer Kopf ${num(newHead)} Byte, Körper ${num(body)} Byte unverändert, Temp-Datei mit Rechten 0600`,
+      [['c', `${t} UID FETCH ${old} (BODY.PEEK[TEXT]<0.${body + 1}>)`], ['s', `* ${seq(old)} FETCH (UID ${old} BODY[TEXT]<0> {${body}} …)`]]);
+
+    t = tag();
+    const append = ['c', `${t} APPEND INBOX (${fl}) "${mail.internal}" {${newSize}+}`];
+    if (scenario === 'quota') {
+      await step(4, 'fail', 'Das Postfach ist voll, der Server lehnt ab. Temp-Datei gelöscht, im Ordner hat sich nichts geändert.',
+        [append, ['no', `${t} NO [OVERQUOTA] Quota exceeded (mailbox for user is full)`]]);
+      skipFrom(5);
+      state.diff = failed();
+      renderDiff();
+      return finish(loading, ['err', MSG.erroroverquota]);
+    }
+    const nu = state.uidnext++;
+    await step(4, 'done', `Die Kopie liegt im Ordner, UID ${nu}`,
+      [append, ['s', `${t} OK [APPENDUID ${UIDVALIDITY} ${nu}] Append completed.`]]);
+    state.box.push({ uid: nu, mail: mail.id, subject, hasSubject: true, flags: flags.slice(), badge: 'Kopie' });
+    renderBox();
+
+    const t3 = tag();
+    const t4 = tag();
+    const t4b = tag();
+    await step(5, 'done', `Größe ${num(newSize)} Byte, Kopf und Flags gleich, SHA-256 des Körpers identisch`, [
+      ['c', `${t3} UID FETCH ${nu} (UID FLAGS INTERNALDATE RFC822.SIZE)`],
+      ['s', `* ${seq(nu)} FETCH (UID ${nu} FLAGS (${canon(flags, ['\\Recent'])}) INTERNALDATE "${mail.internal}" RFC822.SIZE ${newSize})`],
+      ['c', `${t4} UID FETCH ${nu} (BODY.PEEK[HEADER]<0.${newHead + 1}>)`],
+      ['s', `* ${seq(nu)} FETCH (UID ${nu} BODY[HEADER]<0> {${newHead}} …)`],
+      ['c', `${t4b} UID FETCH ${nu} (BODY.PEEK[TEXT]<0.${body + 1}>)`],
+      ['s', `* ${seq(nu)} FETCH (UID ${nu} BODY[TEXT]<0> {${body}} …)`],
+    ]);
+    boxRow(nu).badge = 'geprüft';
+    renderBox();
+
+    const t5a = tag();
+    const t5b = tag();
+    const t5 = tag();
+    const t6 = tag();
+    const seqOld = seq(old);
+    const deleteLines = [
+      ['c', `${t5a} UID FETCH ${old} (UID FLAGS INTERNALDATE RFC822.SIZE)`],
+      ['s', `* ${seqOld} FETCH (UID ${old} FLAGS (${fl}) INTERNALDATE "${mail.internal}" RFC822.SIZE ${oldSize})`],
+      ['c', `${t5b} UID FETCH ${nu} (UID FLAGS)`],
+      ['s', `* ${seq(nu)} FETCH (UID ${nu} FLAGS (${canon(flags, ['\\Recent'])}))`],
+      ['c', `${t5} UID STORE ${old} +FLAGS.SILENT (\\Deleted)`],
+      ['s', `${t5} OK Store completed.`],
+      ['c', `${t6} UID EXPUNGE ${old}`],
+    ];
+    if (scenario !== 'deletefail') {
+      deleteLines.push(['s', `* ${seqOld} EXPUNGE`]);
+    }
+    deleteLines.push(['s', `${t6} OK Expunge completed.`]);
+    await step(6, 'done', scenario === 'deletefail' ? 'Original unverändert, Kopie noch da. Auf das Löschen antwortet der Server zweimal mit OK.' : `Original unverändert, Kopie noch da. Gelöscht wird nur UID ${old}, keine andere Mail im Ordner.`, deleteLines);
+    boxRow(old).deleted = true;
+    renderBox();
+    if (scenario !== 'deletefail') {
+      await sleep(STEP_MS / 2);
+      state.box = state.box.filter((r) => r.uid !== old);
+      renderBox();
+    }
+
+    t = tag();
+    if (scenario === 'deletefail') {
+      await step(7, 'fail', `UID ${old} ist noch da.`,
+        [['c', `${t} UID FETCH ${old} (UID)`], ['s', `* ${seq(old)} FETCH (UID ${old})`], ['s', `${t} OK Fetch completed.`]]);
+      setStepText(8, ROLLBACK);
+      const r0 = tag();
+      const r1 = tag();
+      const r2 = tag();
+      const r3 = tag();
+      const r4 = tag();
+      const seqCopy = seq(nu);
+      await step(8, 'done', 'Markierung zurückgenommen, Original unverändert wiedergefunden, Kopie entfernt. Der Ordner ist wie vorher.', [
+        ['c', `${r0} UID STORE ${old} -FLAGS.SILENT (\\Deleted)`],
+        ['c', `${r1} UID FETCH ${old} (UID FLAGS INTERNALDATE RFC822.SIZE)`],
+        ['s', `* ${seq(old)} FETCH (UID ${old} FLAGS (${fl}) INTERNALDATE "${mail.internal}" RFC822.SIZE ${oldSize})`],
+        ['c', `${r2} UID STORE ${nu} +FLAGS.SILENT (\\Deleted)`],
+        ['c', `${r3} UID EXPUNGE ${nu}`],
+        ['s', `* ${seqCopy} EXPUNGE`],
+        ['c', `${r4} UID FETCH ${nu} (UID)`],
+        ['s', `${r4} OK Fetch completed.`],
+      ], 'Die Befehle des Rückbaus sind aus dem Code abgeleitet, nicht mitgeschnitten.');
+      boxRow(old).deleted = false;
+      state.box = state.box.filter((r) => r.uid !== nu);
+      renderBox();
+      state.diff = failed();
+      renderDiff();
+      return finish(loading, ['err', MSG.errordelete]);
+    }
+
+    const t7 = tag();
+    await step(7, 'done', `UID ${old} ist weg, die Kopie UID ${nu} ist da.`, [
+      ['c', `${t} UID FETCH ${old} (UID)`], ['s', `${t} OK Fetch completed.`],
+      ['c', `${t7} UID FETCH ${nu} (UID FLAGS INTERNALDATE RFC822.SIZE)`], ['s', `* ${seq(nu)} FETCH (UID ${nu} FLAGS (${canon(flags, ['\\Recent'])}) INTERNALDATE "${mail.internal}" RFC822.SIZE ${newSize})`], ['s', `${t7} OK Fetch completed.`],
+    ]);
+
+    const saved = diffFor('gespeichert', mail, subject, nu);
+    mail.uid = nu;
+    mail.fields = after;
+    mail.subject = subject;
+    boxRow(nu).badge = null;
+    await step(8, 'done', `UID ${nu} übernimmt die Zeile von UID ${old}, die Auswahl bleibt.`, []);
+    renderBox();
+    renderPreview();
+    state.diff = saved;
+    renderDiff();
+    finish(loading, ['ok', MSG.subjectchanged], mail.id);
+  }
+
+  /* ---------- Kopf der Mail: vorher und nachher ---------- */
+  function diffFor(kind, mail, subject, newUid) {
+    return {
+      kind,
+      fields: mail.fields.slice(),
+      current: mail.subject,
+      subject,
+      old: mail.uid,
+      nu: newUid || null,
+      flags: mail.flags.slice(),
+      internal: mail.internal,
+      body: mail.body,
+    };
+  }
+
+  function renderDiff() {
+    const d = state.diff;
+    const clean = sanitize(d.subject);
+    const long = tooLong(d.subject);
+    const same = clean === d.current;
+    const changes = d.kind !== 'fehler' && !long && !same;
+    const newField = changes ? subjectField(clean) : null;
+    const after = changes ? rewrite(d.fields, clean) : d.fields;
+    const hadSubject = d.fields.some((f) => fieldName(f) === 'subject');
+
+    const label = {
+      beispiel: ['Beispiel', ''],
+      vorschau: ['Vorschau', 'k-vorschau'],
+      gespeichert: ['Gespeichert', 'k-gespeichert'],
+      fehler: ['Nicht gespeichert', 'k-fehler'],
+    }[d.kind];
+    els.chip.textContent = label[0];
+    els.chip.className = 'chip ' + label[1];
+    let sub;
+    if (d.kind === 'fehler') {
+      sub = 'Auf dem Server ist der Kopf unverändert.';
+    } else if (long) {
+      sub = `Zu lang: höchstens ${MAX_LENGTH} Zeichen, gespeichert wird nichts.`;
+    } else if (same) {
+      sub = 'Betreff unverändert, auf dem Server passiert nichts.';
+    } else {
+      sub = `Neuer Betreff „${clean}“`;
+    }
+    els.sub.textContent = sub;
+    els.uids.textContent = d.nu ? `UID ${d.old} → UID ${d.nu}` : `UID ${d.old}`;
+
+    const out = [];
+    let replaced = false;
+    for (const f of d.fields) {
+      if (newField !== null && fieldName(f) === 'subject') {
+        for (const l of splitLines(f)) {
+          out.push(['del', '−', l]);
+        }
+        if (!replaced) {
+          replaced = true;
+          for (const l of splitLines(newField)) {
+            out.push(['add', '+', l]);
+          }
+        }
+      } else {
+        for (const l of splitLines(f)) {
+          out.push(['ctx', '', l]);
+        }
+      }
+    }
+    if (newField !== null && !replaced) {
+      for (const l of splitLines(newField)) {
+        out.push(['add', '+', l]);
+      }
+    }
+    out.push(['end', '', `(Leerzeile, danach der Körper: ${num(d.body)} Byte, unverändert)`]);
+    els.pre.textContent = '';
+    for (const [kind, sign, text] of out) {
+      const s = document.createElement('span');
+      s.className = 'hl ' + kind;
+      s.dataset.s = sign;
+      s.textContent = text === '' ? ' ' : text;
+      els.pre.append(s);
+    }
+
+    const kept = d.fields.filter((f) => fieldName(f) !== 'subject').length;
+    const facts = [
+      ['Kopffelder', changes ? `${kept} unverändert, Subject ${hadSubject ? 'ersetzt' : 'angehängt'}` : `${d.fields.length} unverändert`],
+      ['Größe', changes ? `${num(headerBytes(d.fields) + d.body)} → ${num(headerBytes(after) + d.body)} Byte` : `${num(headerBytes(d.fields) + d.body)} Byte`],
+      ['Flags', d.flags.length ? d.flags.join(' ') : '(keine)'],
+      ['INTERNALDATE', d.internal],
+    ];
+    els.facts.textContent = '';
+    for (const [k, v] of facts) {
+      const wrap = document.createElement('div');
+      const dt = document.createElement('dt');
+      const dd = document.createElement('dd');
+      dt.textContent = k;
+      dd.textContent = v;
+      wrap.append(dt, dd);
+      els.facts.append(wrap);
+    }
+
+    els.xpre.textContent = '';
+    for (const l of splitLines(xOriginal(d.fields))) {
+      const s = document.createElement('span');
+      s.className = 'hl opt';
+      s.dataset.s = '+';
+      s.textContent = l;
+      els.xpre.append(s);
+    }
+  }
+
+  /* ---------- Ereignisse ---------- */
+  els.list.addEventListener('click', (e) => {
+    const b = e.target.closest('.rc-row');
+    if (!b || state.busy) {
+      return;
+    }
+    state.selected = b.dataset.id;
+    closeMenu();
+    renderList();
+    renderPreview();
+    renderBox();
+    syncControls();
+  });
+
+  els.more.addEventListener('click', () => {
+    if (els.menu.hidden) {
+      openMenu();
+    } else {
+      closeMenu();
+    }
+  });
+
+  els.menu.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b || b.getAttribute('aria-disabled') === 'true') {
+      return;
+    }
+    if (b === els.edit) {
+      closeMenu();
+      startEdit();
+    }
+  });
+
+  els.menu.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') {
+      return;
+    }
+    e.preventDefault();
+    const items = [...els.menu.querySelectorAll('button')];
+    const i = items.indexOf(document.activeElement);
+    items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length].focus();
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!els.menu.hidden && !els.menu.contains(e.target) && !els.more.contains(e.target)) {
+      closeMenu();
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') {
+      return;
+    }
+    if (!els.scrim.hidden) {
+      cancelDialog();
+    } else if (!els.menu.hidden) {
+      closeMenu();
+      els.more.focus();
+    }
+  });
+
+  els.input.addEventListener('input', () => {
+    if (state.dialog) {
+      state.diff = diffFor('vorschau', byId(state.dialog.id), els.input.value);
+      renderDiff();
+    }
+  });
+  els.input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveDialog();
+    }
+  });
+  els.save.addEventListener('click', saveDialog);
+  els.cancel.addEventListener('click', cancelDialog);
+  els.x.addEventListener('click', cancelDialog);
+  els.dialog.addEventListener('keydown', (e) => {
+    if (e.key !== 'Tab') {
+      return;
+    }
+    const focusable = [els.x, els.input, els.save, els.cancel];
+    const i = focusable.indexOf(document.activeElement);
+    e.preventDefault();
+    focusable[(i + (e.shiftKey ? -1 : 1) + focusable.length) % focusable.length].focus();
+  });
+
+  els.scen.addEventListener('change', (e) => {
+    if (e.target.name === 'scen') {
+      state.scenario = e.target.value;
+    }
+  });
+
+  els.reset.addEventListener('click', () => {
+    if (state.busy) {
+      return;
+    }
+    start();
+  });
+
+  for (const b of document.querySelectorAll('[data-copy]')) {
+    b.addEventListener('click', async () => {
+      const pre = $(b.dataset.copy);
+      try {
+        await navigator.clipboard.writeText(pre.textContent);
+        b.textContent = 'Kopiert';
+      } catch (err) {
+        const range = document.createRange();
+        range.selectNodeContents(pre);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        b.textContent = 'Markiert';
+      }
+      setTimeout(() => { b.textContent = 'Kopieren'; }, 1600);
+    });
+  }
+
+  function start() {
+    initState();
+    $('scen-normal').checked = true;
+    els.toasts.textContent = '';
+    closeMenu();
+    els.scrim.hidden = true;
+    buildSteps();
+    renderList();
+    renderPreview();
+    renderBox();
+    renderDiff();
+    syncControls();
+  }
+
+  start();
+})();
+</script>
+</body>
+</html>

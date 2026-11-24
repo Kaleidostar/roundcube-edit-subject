@@ -1,0 +1,12 @@
+Message-ID: <folded-1@example.test>
+Date: Fri, 15 Nov 2019 18:03:27 +0100
+From: =?UTF-8?Q?J=C3=BCrgen_Example?= <juergen@example.test>
+To: Bob Example <bob@example.test>
+Subject: =?UTF-8?Q?Gr=C3=BC=C3=9Fe_aus_K=C3=B6ln_und_eine_sehr_lange_Betreffz?=
+ =?UTF-8?Q?eile,_die_der_Absender_gefaltet_hat?=
+	=?ISO-8859-1?Q?_=28mit_=E4lterem_Zeichensatz=29?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Die Betreffzeile dieser Mail ist kodiert und über drei Zeilen gefaltet.

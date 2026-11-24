@@ -1,0 +1,34 @@
+{
+    "name": "kaleidostar/edit_subject",
+    "type": "roundcube-plugin",
+    "description": "Edit the subject of an existing message. The message is replaced on the IMAP server by a verified copy with the new subject (requires UIDPLUS).",
+    "keywords": ["roundcube", "roundcube-plugin", "plugin", "subject", "imap", "webmail"],
+    "homepage": "https://github.com/Kaleidostar/roundcube-edit-subject",
+    "license": "GPL-3.0-or-later",
+    "authors": [
+        {
+            "name": "Kaleidostar",
+            "homepage": "https://github.com/Kaleidostar"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/Kaleidostar/roundcube-edit-subject/issues",
+        "source": "https://github.com/Kaleidostar/roundcube-edit-subject",
+        "security": "https://github.com/Kaleidostar/roundcube-edit-subject/security/policy"
+    },
+    "require": {
+        "php": ">=8.1",
+        "roundcube/plugin-installer": "~0.3.1"
+    },
+    "extra": {
+        "roundcube": {
+            "min-version": "1.6.0"
+        }
+    },
+    "autoload": {
+        "classmap": [
+            "lib/",
+            "edit_subject.php"
+        ]
+    }
+}

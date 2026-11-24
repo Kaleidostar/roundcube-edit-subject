@@ -1,0 +1,12 @@
+Message-ID: <thread-2@example.test>
+In-Reply-To: <thread-1@example.test>
+References: <thread-1@example.test>
+Date: Mon, 03 Feb 2020 09:30:00 +0100
+From: Bob Example <bob@example.test>
+To: Alice Example <alice@example.test>
+Subject: Re: Projekt Kickoff
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Antwort auf die erste Mail.

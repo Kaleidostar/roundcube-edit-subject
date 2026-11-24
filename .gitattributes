@@ -1,0 +1,23 @@
+# Text files are stored and checked out with LF line endings
+*                         text=auto eol=lf
+
+# Test mails must stay byte-exact (CRLF line endings)
+/tests/fixtures/*.eml     -text
+
+*.png                     binary
+
+# Files that do not belong into a release or a Composer dist archive
+/.editorconfig            export-ignore
+/.gitattributes           export-ignore
+/.github                  export-ignore
+/.gitignore               export-ignore
+/CONTRIBUTING.md          export-ignore
+/Makefile                 export-ignore
+/SECURITY.md              export-ignore
+/docs                     export-ignore
+/release.sh               export-ignore
+/run-tests.sh             export-ignore
+/tests                    export-ignore
+
+# GitHub language statistics: the showcase and the screenshots are documentation
+/docs/**                  linguist-documentation

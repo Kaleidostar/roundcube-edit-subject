@@ -1,0 +1,18 @@
+/dist/
+/zwischenstand/
+/.claude/
+.phpunit.cache/
+.phpunit.result.cache
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Composer, when the repository itself is installed with it
+/vendor/
+/composer.lock
+
+# Editors and operating systems
+.idea/
+.vscode/
+*.swp
+.DS_Store

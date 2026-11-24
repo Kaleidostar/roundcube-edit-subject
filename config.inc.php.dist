@@ -1,0 +1,19 @@
+<?php
+
+// Edit subject plugin options
+// Copy this file to config.inc.php and change the values there.
+
+// Keep the original subject in an X-Original-Subject header field.
+// The field is written on the first edit only and is never changed later,
+// so after several edits it still holds the very first subject.
+// It is a reminder, not a proof: a field of that name that a message already
+// carries (a sender may add one) is left alone just the same, and the real
+// first subject is not recorded then.
+$config['edit_subject_keep_original'] = false;
+
+// Maximum size of the complete message (header and body), in bytes or with
+// a unit K, M or G like Roundcube's own size options ('64M'). Larger
+// messages are refused before any message data is fetched. The default is
+// 64 MiB. Any other value (0, negative numbers, fractions, booleans) is no
+// size: the default applies and the error log says so.
+$config['edit_subject_max_message_size'] = 67108864;

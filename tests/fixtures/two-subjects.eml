@@ -1,0 +1,10 @@
+Message-ID: <twosubjects-1@example.test>
+Date: Thu, 10 Oct 2019 11:11:11 +0200
+Subject: First subject line
+From: Frank Example <frank@example.test>
+To: Bob Example <bob@example.test>
+Subject: Second subject line
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+
+This message carries two Subject header fields.

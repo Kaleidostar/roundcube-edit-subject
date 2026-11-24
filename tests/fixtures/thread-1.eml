@@ -1,0 +1,10 @@
+Message-ID: <thread-1@example.test>
+Date: Mon, 03 Feb 2020 08:00:00 +0100
+From: Alice Example <alice@example.test>
+To: Bob Example <bob@example.test>
+Subject: Projekt Kickoff
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Erste Mail des Threads.

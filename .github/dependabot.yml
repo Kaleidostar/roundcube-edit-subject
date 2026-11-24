@@ -1,0 +1,31 @@
+# Hält die per Commit-SHA angepinnten GitHub Actions aktuell.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+  - package-ecosystem: docker
+    directory: /tests/docker/dovecot
+    schedule:
+      interval: monthly
+  - package-ecosystem: docker
+    directory: /tests/docker/roundcube
+    schedule:
+      interval: monthly
+  - package-ecosystem: docker
+    directory: /tests/docker/phpunit
+    schedule:
+      interval: monthly
+  - package-ecosystem: docker
+    directory: /tests/docker/runner
+    schedule:
+      interval: monthly
+  - package-ecosystem: composer
+    directory: /tests/docker/phpunit
+    schedule:
+      interval: monthly
+  - package-ecosystem: pip
+    directory: /tests/docker/runner
+    schedule:
+      interval: monthly

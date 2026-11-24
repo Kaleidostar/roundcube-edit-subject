@@ -1,0 +1,23 @@
+name: Vorschlag
+description: Eine Idee für eine neue Funktion oder eine Verbesserung.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Worum geht es?
+      description: Welche Aufgabe lässt sich heute nicht oder nur umständlich erledigen?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Vorschlag
+      description: Wie sollte das Plugin sich verhalten?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativen
+      description: Andere Wege, die in Frage kommen oder schon versucht wurden.

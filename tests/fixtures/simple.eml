@@ -1,0 +1,22 @@
+Return-Path: <alice@example.test>
+Received: from mx.example.test (mx.example.test [192.0.2.10])
+	by mail.example.test with ESMTPS id 4XyZ12abCd
+	for <bob@example.test>; Tue, 05 Mar 2019 14:22:01 +0100
+Message-ID: <simple-1@example.test>
+Date: Tue, 05 Mar 2019 14:22:01 +0100
+From: Alice Example <alice@example.test>
+To: Bob Example <bob@example.test>
+Subject: Quarterly report
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+X-Mailer: edit_subject fixture 1.0
+
+Hello Bob,
+
+this is a plain text message with Ümlauts in the body.
+A line with trailing spaces follows:
+And a line with a lone dot:
+.
+
+Alice

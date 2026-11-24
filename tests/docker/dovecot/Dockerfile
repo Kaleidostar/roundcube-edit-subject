@@ -1,0 +1,1 @@
+FROM dovecot/dovecot:2.4.5@sha256:a2e908c9a93698f3923104ea5be7f4beacde9586242aff5d8059599d0042c62a

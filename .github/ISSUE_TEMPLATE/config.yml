@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Sicherheitslücke melden
+    url: https://github.com/Kaleidostar/roundcube-edit-subject/security/advisories/new
+    about: Vertraulich über die private Meldefunktion von GitHub, nicht als öffentliches Issue.

@@ -1,0 +1,60 @@
+Message-ID: <signed-1@example.test>
+Date: Sat, 21 Dec 2019 16:40:00 +0100
+From: Signer Example <signer@example.test>
+To: Bob Example <bob@example.test>
+Subject: Signierte Nachricht
+MIME-Version: 1.0
+Content-Type: multipart/signed; protocol="application/x-pkcs7-signature"; micalg="sha-256"; boundary="----9B71E6E0F93E2DBBC34090E0679FC5B6"
+
+This is an S/MIME signed message
+
+------9B71E6E0F93E2DBBC34090E0679FC5B6
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+Diese Nachricht ist mit S/MIME signiert. Der Mailk=C3=B6rper darf sich
+beim Bearbeiten des Betreffs um kein Byte ver=C3=A4ndern.
+
+Signer
+
+------9B71E6E0F93E2DBBC34090E0679FC5B6
+Content-Type: application/x-pkcs7-signature; name="smime.p7s"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="smime.p7s"
+
+MIIGBAYJKoZIhvcNAQcCoIIF9TCCBfECAQExDzANBglghkgBZQMEAgEFADALBgkq
+hkiG9w0BBwGgggNhMIIDXTCCAkWgAwIBAgIUOxyKke33wfLZ6y+ZZvWdUn+RRGIw
+DQYJKoZIhvcNAQELBQAwPTEXMBUGA1UEAwwOU2lnbmVyIEV4YW1wbGUxIjAgBgkq
+hkiG9w0BCQEWE3NpZ25lckBleGFtcGxlLnRlc3QwIBcNMjYxMTIyMDY0MzAyWhgP
+MjEyNjEwMjkwNjQzMDJaMD0xFzAVBgNVBAMMDlNpZ25lciBFeGFtcGxlMSIwIAYJ
+KoZIhvcNAQkBFhNzaWduZXJAZXhhbXBsZS50ZXN0MIIBIjANBgkqhkiG9w0BAQEF
+AAOCAQ8AMIIBCgKCAQEAok07PDkzU//jZPSXaFIMlJqJGprue3GDQZApJVjABQYG
+oeG+y0xN/thXJPF+xxWnDupKB5qLx9fwc3Ox6d+7u3LVFMQbKdiCu0sV0L8TYOYE
+xcPXhKDXT/P66g1tIvNOgeK1IIbxh41/ANXPiyBanFT4nyzmy6EUZMoVR0oL7LnH
++KM2DAReIdkvu7/tzCcWDI6WOeMzEBD5/JorfYo8E2CYaUZ2sXLDjuka3uju1giy
+8/+0vGI1gRvHxsf6+yf/Ke4VjD6JXeTwsaG0nnxSlnYtEAgClxNXMJtUz6KwnH9P
+vaaq+A2huuMcvJVlLVnk+PMI/P6r3UDCr9Ng/LBSaQIDAQABo1MwUTAdBgNVHQ4E
+FgQU86xXBm5GVCel7lhQsssQvwclnnwwHwYDVR0jBBgwFoAU86xXBm5GVCel7lhQ
+sssQvwclnnwwDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEAK6ke
+qnPBG1qmicwpRT6kb4mh0vUNu5I49FWzOw1C1pNSlnNSzmG1zM+0/oM6MdRIyNmr
+JyEUdm2NKVBRWVEBIczVrVyU+vn4S/kSKjUhTGwDSzqZYaTf+U6r2O5x/oP9Q6EP
+QfhgR583VXrWmQex1CdFRnTUG7qjaiX5GRYHaQpiKKN4lNS0LvhF3EPMJpcaBIHZ
+fjO8J4apkeGO7X7qndG7x4nSIrjKO3E839cLoJTsS8wX330mhJ47OdML8Zs0BYHL
+kfATYUOZpmezspRjgrEoHH/l8LO7i/DPFKgwS9QvMEq3helJH49rC5IByUy2EGdW
+ELuc1/gtBZh2BBwBtzGCAmcwggJjAgEBMFUwPTEXMBUGA1UEAwwOU2lnbmVyIEV4
+YW1wbGUxIjAgBgkqhkiG9w0BCQEWE3NpZ25lckBleGFtcGxlLnRlc3QCFDscipHt
+98Hy2esvmWb1nVJ/kURiMA0GCWCGSAFlAwQCAQUAoIHkMBgGCSqGSIb3DQEJAzEL
+BgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTI2MTEyMjA2NDMwMlowLwYJKoZI
+hvcNAQkEMSIEIP6H2s/kQTMUQ/L8D11iB8NrSk+zk6MCOB6a5lrC+vVDMHkGCSqG
+SIb3DQEJDzFsMGowCwYJYIZIAWUDBAEqMAsGCWCGSAFlAwQBFjALBglghkgBZQME
+AQIwCgYIKoZIhvcNAwcwDgYIKoZIhvcNAwICAgCAMA0GCCqGSIb3DQMCAgFAMAcG
+BSsOAwIHMA0GCCqGSIb3DQMCAgEoMA0GCSqGSIb3DQEBAQUABIIBAIVIzAWXO627
+/g3V/NDzcTKwj7nN1+9pl/JGDwoEDJ7ARKHbi+Een9NoLmmJLQOWxQPhx9DFXdDB
+7aFbuL2wj5B/J+cIKLELTTq7KfbAxXPdOmno+E3OcP76Ai+kAs2vlJ8g2qVi2/x3
+AEYsqQ74cXIeJvm8cpfcuucHzPD0RLuwLXnn+9JEoKmrea5qCdKAQvei8jyfMRwu
+tNe3bxOp1s+MNPiKePMrU7wY4xi/QvoImkV1tqxn46P6w82Aos+ko+OUvzNlnris
+wB8cdLroNhszO0Rk6l4UpSF7rb1H3EdPRhHJYljIIRjsS15e3cmqLKR6Lyjx5wVc
+OykTbLwHHSA=
+
+------9B71E6E0F93E2DBBC34090E0679FC5B6--
+
