@@ -6,6 +6,12 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unveröffentlicht]
 
+### Geändert
+
+- Dependabot schlägt für das Roundcube-Test-Image nur noch Patch-Updates vor.
+  Vorher wollte es die Stufe für 1.6.21 auf 1.7.5 heben, womit der Lauf für
+  die Reihe 1.6 still eine 1.7 getestet hätte.
+
 ## [1.0.3] – 2026-11-24
 
 Härtung nach 1.0.2 und Korrekturen aus dem dritten Sicherheitsaudit vom

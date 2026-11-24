@@ -180,7 +180,10 @@ fixiert Python einschließlich aller Paket-Hashes. Die Datei wird bei Bedarf mit
 `pip-compile --generate-hashes` aus `requirements.in` erneuert. Auch die Archive
 von Chromium und FFmpeg werden beim Download per SHA-256 geprüft. APT verwendet
 den Debian-Snapshot vom 23.11.2026 (`debian.sources`). Dependabot überwacht die
-Docker-, Composer-, Python- und GitHub-Actions-Manifeste.
+Docker-, Composer-, Python- und GitHub-Actions-Manifeste; für das
+Roundcube-Image nur Patch-Updates, weil die beiden Stufen bewusst die Reihen
+1.6 und 1.7 testen. Auch ein Patch-Update bleibt rot, bis `RC_TAG` in
+`Makefile`, `run-tests.sh` und `.github/workflows/tests.yml` nachgezogen ist.
 `test_00_environment.py` prüft die laufende Roundcube-Version, PHP nur auf die
 Hauptversion 8. Gemessen am 23.11.2026:
 

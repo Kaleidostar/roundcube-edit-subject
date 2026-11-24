@@ -13,6 +13,15 @@ updates:
     directory: /tests/docker/roundcube
     schedule:
       interval: monthly
+    # Die Stufen rc176 und rc1621 testen bewusst die Reihen 1.7 und 1.6.
+    # Vorgeschlagen werden nur Patch-Updates; den Wechsel einer Reihe
+    # macht ein Mensch, zusammen mit RC_TAG in Makefile, run-tests.sh und
+    # .github/workflows/tests.yml.
+    ignore:
+      - dependency-name: roundcube/roundcubemail
+        update-types:
+          - version-update:semver-major
+          - version-update:semver-minor
   - package-ecosystem: docker
     directory: /tests/docker/phpunit
     schedule:
