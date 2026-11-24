@@ -10,8 +10,8 @@ COPY composer.json composer.lock /opt/phpunit/
 RUN composer install --working-dir=/opt/phpunit --no-interaction --no-progress \
     --no-plugins --no-scripts --classmap-authoritative
 
-FROM php:8.4-cli@sha256:6b13a8678b38ca38e4e3950be57b664ed8c8706131a0586111f68792aede4c58 AS php84
-FROM php:8.1-cli@sha256:76e563191d1ade120313a8736df24154d21da5155c0756f147c0b01bd19d9087 AS php81
+FROM php:8.6-cli@sha256:d84acf3155d907afaa5afa9b9457c5f12016b6dc7ade84659f40cdc505cc087d AS php84
+FROM php:8.6-cli@sha256:d84acf3155d907afaa5afa9b9457c5f12016b6dc7ade84659f40cdc505cc087d AS php81
 
 FROM ${PHP_STAGE}
 
